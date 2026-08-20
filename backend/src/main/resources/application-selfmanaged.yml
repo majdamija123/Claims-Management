@@ -1,0 +1,15 @@
+# Camunda 8 Self-Managed profile, for a cluster started with docker compose.
+#
+#   SPRING_PROFILES_ACTIVE=selfmanaged ./mvnw spring-boot:run
+#
+# Leave client-id empty when the local cluster runs without an identity provider.
+cdg:
+  camunda:
+    enabled: true
+    mode: SELF_MANAGED
+    grpc-address: ${ZEEBE_GRPC_ADDRESS:http://localhost:26500}
+    rest-address: ${ZEEBE_REST_ADDRESS:http://localhost:8088}
+    client-id: ${CAMUNDA_CLIENT_ID:}
+    client-secret: ${CAMUNDA_CLIENT_SECRET:}
+    audience: ${CAMUNDA_AUDIENCE:zeebe-api}
+    authorization-server-url: ${CAMUNDA_AUTH_URL:}

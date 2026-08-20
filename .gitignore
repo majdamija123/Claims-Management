@@ -1,0 +1,30 @@
+# Java / Maven
+backend/target/
+backend/data/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Node / Angular
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+npm-debug.log*
+
+# Python
+ml-service/__pycache__/
+ml-service/.venv/
+ml-service/model/*.joblib
+*.py[cod]
+
+# Local configuration and secrets — never commit cluster credentials
+.env
+*.local.yml
+backend/src/main/resources/application-local.yml
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+.DS_Store

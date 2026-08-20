@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+                  id="Definitions_ReclamationsCDG"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.36.0"
+                  modeler:executionPlatform="Camunda Cloud"
+                  modeler:executionPlatformVersion="8.10.0">
+  <bpmn:process id="reclamation-client-cdg" name="Gestion des Reclamations Clients - CDG" isExecutable="true">
+
+    <bpmn:documentation>Customer complaint handling process for CDG.
+Qualification -&gt; Front Office -&gt; Middle Office -&gt; Back Office -&gt; Validation -&gt; Closure.
+Driven by the variables: qualificationDecision, foCanAnswer, moCanAnswer, validationDecision.</bpmn:documentation>
+
+    <bpmn:extensionElements>
+      <zeebe:versionTag value="1.0.0" />
+    </bpmn:extensionElements>
+
+    <!-- ============ Start ============ -->
+    <bpmn:startEvent id="StartEvent_Reception" name="Reclamation recue">
+      <bpmn:outgoing>Flow_Start_Qualification</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- ============ Qualification ============ -->
+    <bpmn:userTask id="Task_Qualification" name="Qualification">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition candidateGroups="qualification" />
+        <zeebe:taskSchedule dueDate="=if is defined(slaQualification) then slaQualification else string(now() + duration(&quot;PT8H&quot;))" />
+        <zeebe:priority>=if is defined(claimPriorityScore) then claimPriorityScore else 50</zeebe:priority>
+        <zeebe:ioMapping>
+          <zeebe:output source="=qualificationDecision" target="qualificationDecision" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Start_Qualification</bpmn:incoming>
+      <bpmn:incoming>Flow_Validee_Non</bpmn:incoming>
+      <bpmn:outgoing>Flow_Qualification_Gateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Valide" name="Reclamation valide / pertinente ?" default="Flow_Valide_Non">
+      <bpmn:incoming>Flow_Qualification_Gateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Valide_Oui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Valide_Non</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="End_Rejetee" name="Rejetee &#38; notifiee">
+      <bpmn:incoming>Flow_Valide_Non</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ============ Front Office ============ -->
+    <bpmn:userTask id="Task_TraitementFO" name="Traitement FO">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition candidateGroups="front-office" />
+        <zeebe:taskSchedule dueDate="=if is defined(slaFrontOffice) then slaFrontOffice else string(now() + duration(&quot;PT24H&quot;))" />
+        <zeebe:priority>=if is defined(claimPriorityScore) then claimPriorityScore else 50</zeebe:priority>
+        <zeebe:ioMapping>
+          <zeebe:output source="=foCanAnswer" target="foCanAnswer" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Valide_Oui</bpmn:incoming>
+      <bpmn:outgoing>Flow_FO_Gateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_FO_Repond" name="FO peut repondre ?" default="Flow_FO_Non">
+      <bpmn:incoming>Flow_FO_Gateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_FO_Oui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_FO_Non</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ============ Middle Office ============ -->
+    <bpmn:userTask id="Task_TraitementMO" name="Traitement MO">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition candidateGroups="middle-office" />
+        <zeebe:taskSchedule dueDate="=if is defined(slaMiddleOffice) then slaMiddleOffice else string(now() + duration(&quot;PT48H&quot;))" />
+        <zeebe:priority>=if is defined(claimPriorityScore) then claimPriorityScore else 50</zeebe:priority>
+        <zeebe:ioMapping>
+          <zeebe:output source="=moCanAnswer" target="moCanAnswer" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_FO_Non</bpmn:incoming>
+      <bpmn:outgoing>Flow_MO_Gateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_MO_Repond" name="MO peut repondre ?" default="Flow_MO_Non">
+      <bpmn:incoming>Flow_MO_Gateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_MO_Oui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_MO_Non</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ============ Back Office ============ -->
+    <bpmn:userTask id="Task_TraitementBO" name="Traitement BO">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition candidateGroups="back-office" />
+        <zeebe:taskSchedule dueDate="=if is defined(slaBackOffice) then slaBackOffice else string(now() + duration(&quot;PT72H&quot;))" />
+        <zeebe:priority>=if is defined(claimPriorityScore) then claimPriorityScore else 50</zeebe:priority>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_MO_Non</bpmn:incoming>
+      <bpmn:outgoing>Flow_BO_Validation</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ============ Validation ============ -->
+    <bpmn:userTask id="Task_Validation" name="Validation">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition candidateGroups="validation" />
+        <zeebe:taskSchedule dueDate="=if is defined(slaValidation) then slaValidation else string(now() + duration(&quot;PT24H&quot;))" />
+        <zeebe:priority>=if is defined(claimPriorityScore) then claimPriorityScore else 50</zeebe:priority>
+        <zeebe:ioMapping>
+          <zeebe:output source="=validationDecision" target="validationDecision" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_FO_Oui</bpmn:incoming>
+      <bpmn:incoming>Flow_MO_Oui</bpmn:incoming>
+      <bpmn:incoming>Flow_BO_Validation</bpmn:incoming>
+      <bpmn:outgoing>Flow_Validation_Gateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Validee" name="Validee ?" default="Flow_Validee_Non">
+      <bpmn:incoming>Flow_Validation_Gateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Validee_Oui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Validee_Non</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="End_Cloture" name="Notifier client &#38; Cloturer">
+      <bpmn:incoming>Flow_Validee_Oui</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ============ Sequence flows ============ -->
+    <bpmn:sequenceFlow id="Flow_Start_Qualification" sourceRef="StartEvent_Reception" targetRef="Task_Qualification" />
+    <bpmn:sequenceFlow id="Flow_Qualification_Gateway" sourceRef="Task_Qualification" targetRef="Gateway_Valide" />
+
+    <bpmn:sequenceFlow id="Flow_Valide_Oui" name="Oui" sourceRef="Gateway_Valide" targetRef="Task_TraitementFO">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">=qualificationDecision = "VALID"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Valide_Non" name="Non" sourceRef="Gateway_Valide" targetRef="End_Rejetee" />
+
+    <bpmn:sequenceFlow id="Flow_FO_Gateway" sourceRef="Task_TraitementFO" targetRef="Gateway_FO_Repond" />
+    <bpmn:sequenceFlow id="Flow_FO_Oui" name="Oui" sourceRef="Gateway_FO_Repond" targetRef="Task_Validation">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">=foCanAnswer = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_FO_Non" name="Non" sourceRef="Gateway_FO_Repond" targetRef="Task_TraitementMO" />
+
+    <bpmn:sequenceFlow id="Flow_MO_Gateway" sourceRef="Task_TraitementMO" targetRef="Gateway_MO_Repond" />
+    <bpmn:sequenceFlow id="Flow_MO_Oui" name="Oui" sourceRef="Gateway_MO_Repond" targetRef="Task_Validation">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">=moCanAnswer = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_MO_Non" name="Non" sourceRef="Gateway_MO_Repond" targetRef="Task_TraitementBO" />
+
+    <bpmn:sequenceFlow id="Flow_BO_Validation" sourceRef="Task_TraitementBO" targetRef="Task_Validation" />
+
+    <bpmn:sequenceFlow id="Flow_Validation_Gateway" sourceRef="Task_Validation" targetRef="Gateway_Validee" />
+    <bpmn:sequenceFlow id="Flow_Validee_Oui" name="Oui" sourceRef="Gateway_Validee" targetRef="End_Cloture">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">=validationDecision = "APPROVED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Validee_Non" name="Non" sourceRef="Gateway_Validee" targetRef="Task_Qualification" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="reclamation-client-cdg">
+
+      <bpmndi:BPMNShape id="Shape_StartEvent_Reception" bpmnElement="StartEvent_Reception">
+        <dc:Bounds x="152" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="132" y="245" width="78" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_Qualification" bpmnElement="Task_Qualification">
+        <dc:Bounds x="240" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_Valide" bpmnElement="Gateway_Valide" isMarkerVisible="true">
+        <dc:Bounds x="400" y="195" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="378" y="145" width="95" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_End_Rejetee" bpmnElement="End_Rejetee">
+        <dc:Bounds x="522" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="500" y="245" width="82" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_TraitementFO" bpmnElement="Task_TraitementFO">
+        <dc:Bounds x="470" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_FO_Repond" bpmnElement="Gateway_FO_Repond" isMarkerVisible="true">
+        <dc:Bounds x="610" y="345" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="595" y="302" width="82" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_TraitementMO" bpmnElement="Task_TraitementMO">
+        <dc:Bounds x="720" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_MO_Repond" bpmnElement="Gateway_MO_Repond" isMarkerVisible="true">
+        <dc:Bounds x="880" y="345" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="865" y="302" width="85" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_TraitementBO" bpmnElement="Task_TraitementBO">
+        <dc:Bounds x="990" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_Validation" bpmnElement="Task_Validation">
+        <dc:Bounds x="855" y="520" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_Validee" bpmnElement="Gateway_Validee" isMarkerVisible="true">
+        <dc:Bounds x="880" y="660" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="885" y="717" width="45" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_End_Cloture" bpmnElement="End_Cloture">
+        <dc:Bounds x="1022" y="787" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="998" y="830" width="85" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Start_Qualification" bpmnElement="Flow_Start_Qualification">
+        <di:waypoint x="188" y="220" />
+        <di:waypoint x="240" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Qualification_Gateway" bpmnElement="Flow_Qualification_Gateway">
+        <di:waypoint x="340" y="220" />
+        <di:waypoint x="400" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Valide_Non" bpmnElement="Flow_Valide_Non">
+        <di:waypoint x="450" y="220" />
+        <di:waypoint x="522" y="220" />
+        <bpmndi:BPMNLabel><dc:Bounds x="475" y="202" width="22" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Valide_Oui" bpmnElement="Flow_Valide_Oui">
+        <di:waypoint x="425" y="245" />
+        <di:waypoint x="425" y="370" />
+        <di:waypoint x="470" y="370" />
+        <bpmndi:BPMNLabel><dc:Bounds x="432" y="290" width="21" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_FO_Gateway" bpmnElement="Flow_FO_Gateway">
+        <di:waypoint x="570" y="370" />
+        <di:waypoint x="610" y="370" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_FO_Non" bpmnElement="Flow_FO_Non">
+        <di:waypoint x="660" y="370" />
+        <di:waypoint x="720" y="370" />
+        <bpmndi:BPMNLabel><dc:Bounds x="679" y="352" width="22" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_FO_Oui" bpmnElement="Flow_FO_Oui">
+        <di:waypoint x="635" y="395" />
+        <di:waypoint x="635" y="560" />
+        <di:waypoint x="855" y="560" />
+        <bpmndi:BPMNLabel><dc:Bounds x="642" y="470" width="21" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_MO_Gateway" bpmnElement="Flow_MO_Gateway">
+        <di:waypoint x="820" y="370" />
+        <di:waypoint x="880" y="370" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_MO_Non" bpmnElement="Flow_MO_Non">
+        <di:waypoint x="930" y="370" />
+        <di:waypoint x="990" y="370" />
+        <bpmndi:BPMNLabel><dc:Bounds x="949" y="352" width="22" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_MO_Oui" bpmnElement="Flow_MO_Oui">
+        <di:waypoint x="905" y="395" />
+        <di:waypoint x="905" y="520" />
+        <bpmndi:BPMNLabel><dc:Bounds x="912" y="450" width="21" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_BO_Validation" bpmnElement="Flow_BO_Validation">
+        <di:waypoint x="1040" y="410" />
+        <di:waypoint x="1040" y="560" />
+        <di:waypoint x="955" y="560" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Validation_Gateway" bpmnElement="Flow_Validation_Gateway">
+        <di:waypoint x="905" y="600" />
+        <di:waypoint x="905" y="660" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Validee_Non" bpmnElement="Flow_Validee_Non">
+        <di:waypoint x="880" y="685" />
+        <di:waypoint x="290" y="685" />
+        <di:waypoint x="290" y="260" />
+        <bpmndi:BPMNLabel><dc:Bounds x="580" y="667" width="22" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Validee_Oui" bpmnElement="Flow_Validee_Oui">
+        <di:waypoint x="930" y="685" />
+        <di:waypoint x="1040" y="685" />
+        <di:waypoint x="1040" y="787" />
+        <bpmndi:BPMNLabel><dc:Bounds x="962" y="667" width="21" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

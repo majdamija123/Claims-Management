@@ -1,0 +1,21 @@
+# PostgreSQL profile: docker compose up -d db, then run with
+#   SPRING_PROFILES_ACTIVE=postgres ./mvnw spring-boot:run
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/claims}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USER:claims}
+    password: ${DB_PASSWORD:claims}
+    hikari:
+      maximum-pool-size: 10
+
+  jpa:
+    hibernate:
+      # Flyway owns the schema on PostgreSQL; Hibernate only checks that it matches.
+      ddl-auto: validate
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true

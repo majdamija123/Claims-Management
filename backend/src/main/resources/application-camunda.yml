@@ -1,0 +1,28 @@
+# Camunda 8 SaaS profile.
+#
+#   1. Camunda Console -> cluster Rec_clients_CDG -> API -> Create a new client
+#      (scopes: Zeebe, Tasklist, Operate).
+#   2. Put the generated values in environment variables - never in this file:
+#
+#        export CAMUNDA_CLUSTER_ID=07a7b6da-a3d5-48d1-a677-f4d8fbb1750f
+#        export CAMUNDA_REGION=bru-2            # shown next to the cluster id
+#        export CAMUNDA_CLIENT_ID=...
+#        export CAMUNDA_CLIENT_SECRET=...
+#
+#   3. Run with:  SPRING_PROFILES_ACTIVE=camunda ./mvnw spring-boot:run
+#
+# On startup the application deploys bpmn/reclamation-client-cdg.bpmn to the cluster,
+# so the process is available even on a fresh environment.
+cdg:
+  camunda:
+    enabled: true
+    mode: SAAS
+    cluster-id: ${CAMUNDA_CLUSTER_ID}
+    region: ${CAMUNDA_REGION}
+    client-id: ${CAMUNDA_CLIENT_ID}
+    client-secret: ${CAMUNDA_CLIENT_SECRET}
+    request-timeout: 20s
+
+logging:
+  level:
+    io.camunda: INFO

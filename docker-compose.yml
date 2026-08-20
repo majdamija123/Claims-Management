@@ -1,0 +1,50 @@
+# Local infrastructure for development.
+#
+#   docker compose up -d
+#
+# Then run the backend against PostgreSQL:
+#   cd backend && SPRING_PROFILES_ACTIVE=postgres ./mvnw spring-boot:run
+#
+# Camunda itself is not started here: the project targets Camunda 8 SaaS (see
+# backend/src/main/resources/application-camunda.yml). For a self-managed cluster, use
+# Camunda's own distribution and run the backend with the "selfmanaged" profile.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: claims-db
+    environment:
+      POSTGRES_DB: claims
+      POSTGRES_USER: claims
+      POSTGRES_PASSWORD: claims
+    ports:
+      - '5432:5432'
+    volumes:
+      - claims-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U claims -d claims']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Catches the customer e-mails during development instead of sending them.
+  # Web interface on http://localhost:8025
+  mail:
+    image: axllent/mailpit:latest
+    container_name: claims-mail
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
+  # Complaint classification model. Optional: the backend falls back to its own
+  # keyword rules when this is not running.
+  ml:
+    build: ./ml-service
+    container_name: claims-ml
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./ml-service/model:/app/model:ro
+
+volumes:
+  claims-db-data:
