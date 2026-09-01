@@ -1,0 +1,7 @@
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic>=2.9
+
+# Only needed once you drop your trained pipeline into model/claim_classifier.joblib.
+joblib>=1.4
+scikit-learn>=1.5

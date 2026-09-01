@@ -1,0 +1,117 @@
+spring:
+  application:
+    name: cdg-claims-management
+
+  # H2 file database by default so the application runs with no infrastructure at all.
+  # Use the "postgres" profile (or SPRING_PROFILES_ACTIVE=postgres) for a real database.
+  datasource:
+    url: jdbc:h2:file:./data/claims;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: false
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8080
+  error:
+    include-message: never
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+# ---------------------------------------------------------------------------
+# Application settings
+# ---------------------------------------------------------------------------
+cdg:
+  # Camunda 8 connection.
+  #
+  # Disabled by default: the application then runs on its built-in simulator, which
+  # replays reclamation-client-cdg.bpmn in memory so every screen works without a
+  # cluster. To use the real cluster set CAMUNDA_ENABLED=true and supply the four
+  # values below - see application-camunda.yml for how to obtain them.
+  camunda:
+    enabled: ${CAMUNDA_ENABLED:false}
+    mode: SAAS
+    cluster-id: ${CAMUNDA_CLUSTER_ID:}
+    region: ${CAMUNDA_REGION:}
+    client-id: ${CAMUNDA_CLIENT_ID:}
+    client-secret: ${CAMUNDA_CLIENT_SECRET:}
+    request-timeout: 20s
+
+  workflow:
+    process-id: reclamation-client-cdg
+    resource: bpmn/reclamation-client-cdg.bpmn
+    deploy-on-startup: true
+    sync-interval: 60s
+
+  sla:
+    default-duration: 24h
+    warning-threshold: 0.75
+    check-interval: 120s
+    steps:
+      QUALIFICATION: 8h
+      FRONT_OFFICE: 24h
+      MIDDLE_OFFICE: 48h
+      BACK_OFFICE: 72h
+      VALIDATION: 24h
+
+  ml:
+    enabled: ${ML_ENABLED:false}
+    base-url: ${ML_BASE_URL:http://localhost:8000}
+    timeout: 3s
+
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: reclamations@cdg.ma
+    signature: Service Reclamations Clients - CDG
+
+  jwt:
+    # Override in every environment. Must be at least 32 characters.
+    secret: ${JWT_SECRET:cdg-claims-development-secret-key-change-me-please-32}
+    expiration: 8h
+    issuer: cdg-claims-management
+
+  demo:
+    seed-users: ${SEED_USERS:true}
+    seed-claims: ${SEED_CLAIMS:true}
+    password: ${DEMO_PASSWORD:Cdg@2026}
+
+logging:
+  level:
+    ma.cdg.claims: INFO
+    io.camunda: WARN
+    org.hibernate.orm.deprecation: ERROR
