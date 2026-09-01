@@ -1,0 +1,75 @@
+# Camunda 8 Self-Managed - lightweight local orchestration cluster.
+#
+# Trimmed from Camunda's own official artifact
+# (https://github.com/camunda/camunda-distributions/releases/tag/docker-compose-8.9)
+# to just what this project needs: Zeebe + Operate + Tasklist, now shipped as a single
+# consolidated image. Connectors, Identity, Keycloak, Optimize and Web Modeler are dropped -
+# this application does not use them.
+#
+# Usage:
+#   cd camunda
+#   docker compose up -d
+#   docker compose logs -f orchestration   # wait for "Broker is ready"
+#
+# Then point the backend at it: SPRING_PROFILES_ACTIVE=selfmanaged, from the backend folder.
+#
+# Web UIs (login demo / demo):
+#   Operate:  http://localhost:8085/operate
+#   Tasklist: http://localhost:8085/tasklist
+#   Admin:    http://localhost:8085/admin
+#
+# Host port 8085 (not the usual 8080 from Camunda's own docs) because this project's own
+# Spring Boot backend already listens on 8080 - only the host-side mapping changes below,
+# nothing inside the container.
+
+services:
+  camunda-data-init:
+    image: camunda/camunda:${CAMUNDA_VERSION}
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c", "chown -R 1001:1001 /usr/local/camunda/camunda-data && chmod 775 /usr/local/camunda/camunda-data"]
+    volumes:
+      - camunda-data:/usr/local/camunda/camunda-data
+    restart: "no"
+
+  # Consolidated Zeebe + Operate + Tasklist.
+  # https://docs.camunda.io/docs/self-managed/setup/deploy/other/docker/#zeebe
+  orchestration:
+    image: camunda/camunda:${CAMUNDA_VERSION}
+    container_name: cdg-camunda-orchestration
+    ports:
+      - "26500:26500" # Zeebe gRPC - cdg.camunda.grpc-address
+      - "9600:9600"   # health/monitoring
+      - "8085:8080"   # REST v2 API + Operate/Tasklist/Admin UI - cdg.camunda.rest-address
+    env_file:
+      - path: .env
+        required: true
+    mem_limit: 1g
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9600 && echo -e \"GET /actuator/health/status HTTP/1.1\r\nHost: localhost\r\n\r\n\" >&3 && head -n 1 <&3'"]
+      interval: 1s
+      retries: 30
+      start_period: 30s
+    volumes:
+      - camunda:/usr/local/camunda/data
+      - camunda-data:/usr/local/camunda/camunda-data
+    configs:
+      - source: orchestration-config
+        target: /usr/local/camunda/config/application.yaml
+    networks:
+      - camunda
+    depends_on:
+      camunda-data-init:
+        condition: service_completed_successfully
+
+volumes:
+  camunda:
+  camunda-data:
+
+networks:
+  camunda:
+    name: cdg-camunda
+
+configs:
+  orchestration-config:
+    file: ./configuration/${ORCHESTRATION_CONFIG_FILE:-application-h2.yaml}
