@@ -1,14 +1,21 @@
-# Camunda 8 Self-Managed profile, for a cluster started with docker compose.
+# Camunda 8 Self-Managed profile, for the local orchestration cluster started from the
+# camunda/ folder at the repo root (camunda/docker-compose.yaml).
 #
-#   SPRING_PROFILES_ACTIVE=selfmanaged ./mvnw spring-boot:run
+#   cd camunda && docker compose up -d
+#   cd ../backend && SPRING_PROFILES_ACTIVE=selfmanaged ./mvnw spring-boot:run
 #
-# Leave client-id empty when the local cluster runs without an identity provider.
+# Port 8085 (not Camunda's usual default of 8080) because this backend already listens on
+# 8080 itself - see camunda/docker-compose.yaml for the port mapping.
+#
+# No client-id/secret needed: the bundled application-h2.yaml runs with
+# security.authentication.unprotectedApi=true, so the gRPC/REST API takes no credentials.
+# (The demo/demo login only guards the Operate/Tasklist/Admin web UIs, not the API.)
 cdg:
   camunda:
     enabled: true
     mode: SELF_MANAGED
     grpc-address: ${ZEEBE_GRPC_ADDRESS:http://localhost:26500}
-    rest-address: ${ZEEBE_REST_ADDRESS:http://localhost:8088}
+    rest-address: ${ZEEBE_REST_ADDRESS:http://localhost:8085}
     client-id: ${CAMUNDA_CLIENT_ID:}
     client-secret: ${CAMUNDA_CLIENT_SECRET:}
     audience: ${CAMUNDA_AUDIENCE:zeebe-api}

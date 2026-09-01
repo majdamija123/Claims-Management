@@ -19,6 +19,9 @@ ml-service/model/*.joblib
 
 # Local configuration and secrets — never commit cluster credentials
 .env
+# camunda/.env holds no secrets (just image version pins) and is meant to be committed,
+# so local Camunda 8 setup works out of the box for anyone who clones the repo.
+!camunda/.env
 *.local.yml
 backend/src/main/resources/application-local.yml
 

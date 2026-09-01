@@ -96,9 +96,10 @@ public class CamundaClientGateway implements CamundaGateway {
                         } else if (query.unassignedOnly()) {
                             f.assignee(a -> a.exists(false));
                         }
-                        if (query.businessId() != null) {
-                            f.businessId(query.businessId());
-                        }
+                        // No f.businessId(...) filter here: that field only exists on user task
+                        // search starting with Camunda 8.10. The project targets the 8.9 broker
+                        // (see the "camunda.version" comment in pom.xml), so correlation to a
+                        // claim always goes through processInstanceKey instead - see toWorkflowTask().
                         if (query.processInstanceKey() != null) {
                             f.processInstanceKey(query.processInstanceKey());
                         }
@@ -244,7 +245,10 @@ public class CamundaClientGateway implements CamundaGateway {
                 task.getAssignee(),
                 task.getCandidateGroups() == null ? List.of() : List.copyOf(task.getCandidateGroups()),
                 task.getProcessInstanceKey() == null ? 0L : task.getProcessInstanceKey(),
-                task.getBusinessId(),
+                // UserTask.getBusinessId() does not exist on the 8.9 client this project targets
+                // (added in 8.10). Every caller of WorkflowTask.businessId() already falls back
+                // to processInstanceKey when this is null - see ClaimService.requireForProcess().
+                null,
                 toInstant(task.getCreationDate()),
                 toInstant(task.getDueDate()),
                 task.getPriority(),

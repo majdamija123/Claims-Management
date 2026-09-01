@@ -87,6 +87,57 @@ The switch is one setting (`cdg.camunda.enabled`). Nothing else in the applicati
 
 ---
 
+## 2 bis. Running Camunda 8 locally, with Docker (no SaaS account needed)
+
+Prefer to see complaints show up in a real Camunda engine — Operate, Tasklist, the token
+moving through the diagram in Modeler — without waiting for SaaS credentials? Run a local
+Self-Managed cluster with Docker.
+
+**Requirements:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) running.
+
+```bash
+cd camunda
+docker compose up -d
+docker compose logs -f orchestration     # wait for a line ending in "Broker is ready"
+```
+
+This starts Zeebe + Operate + Tasklist as a single container (`camunda/camunda`, the
+consolidated image Camunda ships as of 8.9), storing its data in a local H2 file — no
+Elasticsearch, no Keycloak, nothing else to run. It comes straight from Camunda's own
+[official Docker Compose release for 8.9](https://github.com/camunda/camunda-distributions/releases/tag/docker-compose-8.9),
+trimmed to just the pieces this project uses.
+
+Then point the backend at it instead of the simulator:
+
+```bash
+cd ../backend
+SPRING_PROFILES_ACTIVE=selfmanaged ./mvnw spring-boot:run
+```
+
+That's it — no client id, no secret. The bundled config runs with an unprotected API (see
+`camunda/configuration/application-h2.yaml`), so the backend connects with nothing but the
+two addresses in `application-selfmanaged.yml`. Every complaint registered in the app from
+now on is a real process instance:
+
+- **Operate** — http://localhost:8085/operate — watch the token move through the diagram
+- **Tasklist** — http://localhost:8085/tasklist — see the same tasks the Angular app shows
+- **Admin** — http://localhost:8085/admin
+
+Log in to any of them with `demo` / `demo`.
+
+> **Why port 8085 and not the 8080 shown in Camunda's own docs?** This project's own
+> backend already listens on 8080. `camunda/docker-compose.yaml` only remaps the *host*
+> side of the port (`8085:8080`) — inside the container it's still 8080, so anything from
+> Camunda's docs that references paths like `/operate` or `/v2/...` still works, just at
+> `localhost:8085` instead of `:8080`.
+
+**Shut it down** with `docker compose down` (add `-v` to also delete the H2 data volume and
+start fresh next time). **Version note:** the compose file is pinned to `camunda/camunda:8.9.11`
+to exactly match `camunda-client-java` in `backend/pom.xml` — Camunda only publishes a Docker
+image for select patch releases, so this is not simply "the latest 8.9.x".
+
+---
+
 ## 3. The process
 
 The model is `backend/src/main/resources/bpmn/reclamation-client-cdg.bpmn`, drawn exactly
