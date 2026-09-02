@@ -10,6 +10,7 @@ import ma.cdg.claims.domain.TaskDecision;
 import ma.cdg.claims.domain.WorkflowStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -223,6 +224,13 @@ public class AssistantService {
         synchronized (this) {
             if (client == null) {
                 client = RestClient.builder()
+                        // The JDK's own HTTP client, explicitly - not the Apache one Spring
+                        // would otherwise pick up from the classpath. httpclient5 (pinned to
+                        // 5.6.1 for the Camunda client) advertises Brotli whenever brotli4j is
+                        // present, but brotli4j needs a per-platform native library that is
+                        // not: Groq then answers with Content-Encoding: br and decoding dies
+                        // with UnsatisfiedLinkError. The JDK client has no Brotli path at all.
+                        .requestFactory(new JdkClientHttpRequestFactory())
                         .baseUrl(GROQ_BASE_URL)
                         .defaultHeader("Authorization", "Bearer " + properties.getAssistant().getApiKey())
                         .build();

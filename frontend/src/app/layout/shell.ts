@@ -4,6 +4,7 @@ import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { ToastService } from '../core/toast.service';
 import { TaskCounts } from '../core/models';
+import { AssistantWidgetComponent } from '../shared/assistant-widget';
 
 interface NavItem {
   path: string;
@@ -17,7 +18,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, AssistantWidgetComponent],
   template: `
     <div class="shell">
       <aside class="sidebar" [class.open]="menuOpen()">
@@ -103,6 +104,8 @@ interface NavItem {
       @if (menuOpen()) {
         <div class="scrim" (click)="menuOpen.set(false)"></div>
       }
+
+      <app-assistant-widget />
 
       <div class="toast-stack">
         @for (toast of toasts.toasts(); track toast.id) {

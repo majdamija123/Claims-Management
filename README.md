@@ -304,8 +304,8 @@ answered.
 
 ## 8 bis. The per-unit assistant
 
-Each complaint carries an **Assistant** panel that the unit holding it can ask about that
-complaint — what the customer is actually asking for, what is missing before a decision,
+A floating **Assistant** button sits in the corner of every page. It follows the unit
+around and advises on whichever complaint is open — what the customer is actually asking for, what is missing before a decision,
 or a draft of the answer to send. A drafted answer can be carried straight into the
 completion dialog with one click.
 

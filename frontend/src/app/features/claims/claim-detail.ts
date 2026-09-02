@@ -1,13 +1,13 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { ClaimDetail, ReferenceData, TaskSummary } from '../../core/models';
+import { AssistantContextService } from '../../core/assistant-context.service';
 import { ToastService } from '../../core/toast.service';
 import { CHIPS } from '../../shared/chips';
 import { DateTimePipe, RelativeTimePipe } from '../../shared/format';
-import { AssistantPanelComponent } from '../../shared/assistant-panel';
 import { CompleteTaskDialogComponent } from '../tasks/complete-task-dialog';
 
 type Tab = 'overview' | 'timeline' | 'workflow';
@@ -22,7 +22,6 @@ type Tab = 'overview' | 'timeline' | 'workflow';
     DateTimePipe,
     RelativeTimePipe,
     CompleteTaskDialogComponent,
-    AssistantPanelComponent,
     ...CHIPS,
   ],
   template: `
@@ -205,11 +204,6 @@ type Tab = 'overview' | 'timeline' | 'workflow';
                 </div>
               </div>
 
-              <app-assistant-panel
-                [claimId]="detail.summary.id"
-                hint="Advice for your unit, on this complaint"
-                (useAnswer)="useSuggestedAnswer($event)"
-              />
             </div>
           }
 
@@ -474,10 +468,11 @@ type Tab = 'overview' | 'timeline' | 'workflow';
     `,
   ],
 })
-export class ClaimDetailComponent implements OnInit {
+export class ClaimDetailComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly toasts = inject(ToastService);
+  private readonly assistantContext = inject(AssistantContextService);
   readonly auth = inject(AuthService);
 
   readonly claim = signal<ClaimDetail | null>(null);
@@ -489,10 +484,10 @@ export class ClaimDetailComponent implements OnInit {
   readonly cancelling = signal(false);
 
   comment = '';
-
-  /** An answer drafted by the assistant, waiting to seed the next completion dialog. */
-  readonly draftAnswer = signal('');
   cancelReason = '';
+
+  /** Filled by the floating assistant; seeds the answer field of the completion dialog. */
+  readonly draftAnswer = this.assistantContext.draftAnswer;
 
   ngOnInit(): void {
     this.api.referenceData().subscribe({ next: (data) => this.reference.set(data) });
@@ -599,13 +594,11 @@ export class ClaimDetailComponent implements OnInit {
       });
   }
 
-  /**
-   * Carries a drafted answer into the completion dialog. If the agent is already holding
-   * the task, the dialog opens on it; otherwise the draft waits until they take it.
-   */
-  useSuggestedAnswer(text: string): void {
-    this.draftAnswer.set(text);
-    this.toasts.success('Draft ready — it will fill the answer when you handle the task.');
+  ngOnDestroy(): void {
+    const id = this.claim()?.summary.id;
+    if (id) {
+      this.assistantContext.close(id);
+    }
   }
 
   onCompleted(): void {
@@ -622,6 +615,10 @@ export class ClaimDetailComponent implements OnInit {
       next: (detail) => {
         this.claim.set(detail);
         this.loading.set(false);
+        this.assistantContext.open({
+          id: detail.summary.id,
+          reference: detail.summary.reference,
+        });
       },
       error: (error) => {
         this.loading.set(false);
