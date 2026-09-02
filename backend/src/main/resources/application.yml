@@ -107,7 +107,7 @@ cdg:
   assistant:
     enabled: ${ASSISTANT_ENABLED:false}
     api-key: ${GROQ_API_KEY:}
-    model: ${ASSISTANT_MODEL:llama-3.3-70b-versatile}
+    model: ${ASSISTANT_MODEL:openai/gpt-oss-120b}
     max-tokens: ${ASSISTANT_MAX_TOKENS:1200}
 
   mail:

@@ -322,6 +322,14 @@ cd backend
 ASSISTANT_ENABLED=true GROQ_API_KEY=gsk_... ./mvnw spring-boot:run
 ```
 
+Which models a key can reach varies by account, and Groq's catalogue changes. If the panel
+reports that the model does not exist, ask the key what it actually has and set
+`ASSISTANT_MODEL` to one of them:
+
+```bash
+curl -H "Authorization: Bearer $GROQ_API_KEY" https://api.groq.com/openai/v1/models
+```
+
 Backed by [Groq](https://console.groq.com/keys), over its OpenAI-compatible chat
 completions endpoint — no SDK, a plain REST call, and a free tier that is enough to
 demonstrate this. Off by default. Without a key the panel does not appear at all, and
@@ -349,7 +357,7 @@ one can be overridden by an environment variable.
 | `cdg.ml.enabled` | `false` | call the classification service |
 | `cdg.assistant.enabled` | `false` | offer the per-unit assistant on a complaint |
 | `cdg.assistant.api-key` | — | Groq API key (`GROQ_API_KEY`) |
-| `cdg.assistant.model` | `llama-3.3-70b-versatile` | model behind the assistant |
+| `cdg.assistant.model` | `openai/gpt-oss-120b` | model behind the assistant |
 | `cdg.mail.enabled` | `false` | actually send customer e-mails |
 | `cdg.jwt.secret` | dev value | **override in every environment** (≥ 32 characters) |
 | `cdg.demo.seed-users` / `.seed-claims` | `true` | create the demo accounts and complaints |
