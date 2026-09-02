@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * The assistant each unit can ask about the complaint it is holding.
@@ -93,10 +94,30 @@ public class AssistantService {
             return text;
         } catch (AssistantUnavailableException e) {
             throw e;
+        } catch (RestClientResponseException e) {
+            // Groq explains itself well - an unknown model, a rejected key, a rate limit.
+            // Passing that through saves the agent guessing at a generic failure.
+            log.warn("Assistant call failed for {}: {}", claim.getReference(), e.getMessage());
+            throw new AssistantUnavailableException(upstreamMessage(e));
         } catch (RuntimeException e) {
             log.warn("Assistant call failed for {}: {}", claim.getReference(), e.getMessage());
             throw new AssistantUnavailableException("The assistant could not be reached. Try again shortly.");
         }
+    }
+
+    /** Groq's own wording for the failure, or a plain fallback when it sent none. */
+    private String upstreamMessage(RestClientResponseException e) {
+        try {
+            ApiError body = e.getResponseBodyAs(ApiError.class);
+            if (body != null && body.error() != null && body.error().message() != null
+                    && !body.error().message().isBlank()) {
+                return "The assistant service refused the request: " + body.error().message();
+            }
+        } catch (RuntimeException ignored) {
+            // Not the JSON shape we expected; the generic wording below is still true.
+        }
+        return "The assistant service returned %d. Check the model name and the API key."
+                .formatted(e.getStatusCode().value());
     }
 
     // ----------------------------------------------------------------------- the prompt
@@ -263,5 +284,12 @@ public class AssistantService {
     }
 
     private record Choice(ChatMessage message) {
+    }
+
+    /** The shape of an error body, so the service's own wording can be shown to the agent. */
+    private record ApiError(ErrorDetail error) {
+    }
+
+    private record ErrorDetail(String message, String type, String code) {
     }
 }
