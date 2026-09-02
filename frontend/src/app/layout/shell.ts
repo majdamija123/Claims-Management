@@ -122,8 +122,8 @@ interface NavItem {
       .sidebar {
         width: var(--sidebar-width);
         flex: none;
-        background: var(--navy-900);
-        color: #cfdcf0;
+        background: var(--cdg-slate-900);
+        color: #d3dde1;
         display: flex;
         flex-direction: column;
         position: sticky;
@@ -140,8 +140,8 @@ interface NavItem {
         width: 38px;
         height: 38px;
         border-radius: 9px;
-        background: var(--gold-500);
-        color: var(--navy-900);
+        background: var(--cdg-green-500);
+        color: var(--cdg-slate-900);
         font-weight: 700;
         font-size: 13px;
         display: flex;
@@ -160,7 +160,7 @@ interface NavItem {
       }
       .brand-text span {
         font-size: 11.5px;
-        color: #8fa8ca;
+        color: #9aacb4;
       }
       nav {
         flex: 1;
@@ -176,7 +176,7 @@ interface NavItem {
         gap: 11px;
         padding: 9px 12px;
         border-radius: var(--radius-sm);
-        color: #cfdcf0;
+        color: #d3dde1;
         font-size: 13.5px;
         font-weight: 500;
         text-decoration: none;
@@ -186,7 +186,7 @@ interface NavItem {
         text-decoration: none;
       }
       .nav-item.active {
-        background: var(--navy-700);
+        background: var(--cdg-slate-700);
         color: #fff;
       }
       .nav-icon {
@@ -198,7 +198,7 @@ interface NavItem {
         flex: 1;
       }
       .nav-badge {
-        background: var(--navy-600);
+        background: var(--cdg-slate-600);
         color: #fff;
         border-radius: 999px;
         padding: 1px 7px;
@@ -213,12 +213,12 @@ interface NavItem {
         border-top: 1px solid rgba(255, 255, 255, 0.1);
       }
       .sidebar-foot .btn {
-        background: var(--gold-500);
-        color: var(--navy-900);
+        background: var(--cdg-green-500);
+        color: var(--cdg-slate-900);
         font-weight: 600;
       }
       .sidebar-foot .btn:hover {
-        background: #d9b43c;
+        background: var(--cdg-green-500);
         text-decoration: none;
       }
 
@@ -306,8 +306,8 @@ interface NavItem {
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        background: var(--navy-100);
-        color: var(--navy-700);
+        background: var(--cdg-slate-100);
+        color: var(--cdg-slate-700);
         font-weight: 600;
         font-size: 12px;
         display: flex;

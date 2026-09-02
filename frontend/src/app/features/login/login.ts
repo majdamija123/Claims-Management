@@ -116,8 +116,8 @@ import { describeHttpError } from '../../core/toast.service';
         width: 50px;
         height: 50px;
         border-radius: 12px;
-        background: var(--navy-800);
-        color: var(--gold-500);
+        background: var(--cdg-slate-800);
+        color: var(--cdg-green-500);
         font-weight: 700;
         display: flex;
         align-items: center;
@@ -153,8 +153,8 @@ import { describeHttpError } from '../../core/toast.service';
         border-radius: 4px;
       }
       .aside {
-        background: linear-gradient(160deg, var(--navy-900), var(--navy-700));
-        color: #dbe6f7;
+        background: linear-gradient(160deg, var(--cdg-slate-900), var(--cdg-slate-700));
+        color: #dae4e7;
         padding: 48px min(6vw, 64px);
         display: flex;
         flex-direction: column;
@@ -176,7 +176,7 @@ import { describeHttpError } from '../../core/toast.service';
         max-width: 46ch;
       }
       .aside strong {
-        color: var(--gold-500);
+        color: var(--cdg-green-500);
       }
       @media (max-width: 900px) {
         .login-page {

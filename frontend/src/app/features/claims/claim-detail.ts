@@ -348,7 +348,7 @@ type Tab = 'overview' | 'timeline' | 'workflow';
         color: var(--green-600);
       }
       .step.current .bullet {
-        background: var(--navy-800);
+        background: var(--cdg-slate-800);
         color: #fff;
       }
       .step-label {
@@ -360,7 +360,7 @@ type Tab = 'overview' | 'timeline' | 'workflow';
       }
       .open-tasks {
         margin-bottom: 16px;
-        border-left: 3px solid var(--navy-700);
+        border-left: 3px solid var(--cdg-slate-700);
       }
       .open-task {
         display: flex;
@@ -416,7 +416,7 @@ type Tab = 'overview' | 'timeline' | 'workflow';
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        background: var(--navy-600);
+        background: var(--cdg-slate-600);
         margin-top: 4px;
         flex: none;
         z-index: 1;

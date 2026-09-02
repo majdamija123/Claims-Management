@@ -6,17 +6,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Brand */
-  --navy-900: #0a1f3d;
-  --navy-800: #0f2d5a;
-  --navy-700: #16407c;
-  --navy-600: #1e56a0;
-  --navy-100: #e8eefa;
-  --navy-050: #f4f7fd;
+  /* Brand - the two colours of the CDG mark: the slate blue-grey of the
+     wordmark, and the olive green of the swoosh over the G. */
+  --cdg-slate-900: #16232a;
+  --cdg-slate-800: #22333c;
+  --cdg-slate-700: #34474f;
+  --cdg-slate-600: #4a606b;
+  --cdg-slate-100: #e5ecef;
+  --cdg-slate-050: #f3f7f8;
 
-  --gold-600: #a8891f;
-  --gold-500: #c9a227;
-  --gold-100: #fbf3d9;
+  /* -600 is the text-safe green; -500 is the mark's own green, for fills. */
+  --cdg-green-600: #5b8420;
+  --cdg-green-500: #7ba928;
+  --cdg-green-100: #edf5dc;
 
   /* Neutrals */
   --ink-900: #101828;
@@ -73,7 +75,7 @@ h1 { font-size: 22px; }
 h2 { font-size: 18px; }
 h3 { font-size: 15px; }
 p { margin: 0 0 8px; }
-a { color: var(--navy-600); text-decoration: none; }
+a { color: var(--cdg-slate-600); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ------------------------------------------------------------------ layout */
@@ -158,10 +160,10 @@ a:hover { text-decoration: underline; }
 }
 
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn:focus-visible { outline: 2px solid var(--navy-600); outline-offset: 2px; }
+.btn:focus-visible { outline: 2px solid var(--cdg-slate-600); outline-offset: 2px; }
 
-.btn.primary { background: var(--navy-800); color: var(--white); }
-.btn.primary:hover:not(:disabled) { background: var(--navy-700); }
+.btn.primary { background: var(--cdg-slate-800); color: var(--white); }
+.btn.primary:hover:not(:disabled) { background: var(--cdg-slate-700); }
 
 .btn.secondary { background: var(--white); color: var(--ink-700); border-color: var(--ink-300); }
 .btn.secondary:hover:not(:disabled) { background: var(--ink-050); }
@@ -207,8 +209,8 @@ textarea { min-height: 92px; resize: vertical; line-height: 1.5; }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: var(--navy-600);
-  box-shadow: 0 0 0 3px var(--navy-100);
+  border-color: var(--cdg-slate-600);
+  box-shadow: 0 0 0 3px var(--cdg-slate-100);
 }
 
 input.invalid, select.invalid, textarea.invalid { border-color: var(--red-600); }
@@ -246,7 +248,7 @@ table.data td {
   vertical-align: middle;
 }
 
-table.data tbody tr:hover { background: var(--navy-050); }
+table.data tbody tr:hover { background: var(--cdg-slate-050); }
 table.data tbody tr.clickable { cursor: pointer; }
 table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
 table.data .mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; }
@@ -281,8 +283,8 @@ table.data .mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-
 .chip.amber { background: var(--amber-100); color: var(--amber-600); }
 .chip.red { background: var(--red-100); color: var(--red-600); }
 .chip.purple { background: var(--purple-100); color: var(--purple-600); }
-.chip.navy { background: var(--navy-100); color: var(--navy-700); }
-.chip.gold { background: var(--gold-100); color: var(--gold-600); }
+.chip.slate { background: var(--cdg-slate-100); color: var(--cdg-slate-700); }
+.chip.olive { background: var(--cdg-green-100); color: var(--cdg-green-600); }
 
 /* -------------------------------------------------------------------- misc */
 
@@ -322,7 +324,7 @@ table.data .mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-
   width: 18px;
   height: 18px;
   border: 2px solid var(--ink-200);
-  border-top-color: var(--navy-600);
+  border-top-color: var(--cdg-slate-600);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -394,7 +396,7 @@ table.data .mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
   background: var(--white);
-  border-left: 4px solid var(--navy-600);
+  border-left: 4px solid var(--cdg-slate-600);
   font-size: 13px;
   animation: slide-in 0.18s ease;
 }
@@ -430,4 +432,4 @@ table.data .mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-
 }
 
 .tabs button:hover { color: var(--ink-900); }
-.tabs button.active { color: var(--navy-700); border-bottom-color: var(--navy-700); }
+.tabs button.active { color: var(--cdg-slate-700); border-bottom-color: var(--cdg-slate-700); }

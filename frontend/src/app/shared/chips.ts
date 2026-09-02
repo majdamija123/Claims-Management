@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
-type Tone = 'grey' | 'blue' | 'green' | 'amber' | 'red' | 'purple' | 'navy' | 'gold';
+type Tone = 'grey' | 'blue' | 'green' | 'amber' | 'red' | 'purple' | 'slate' | 'olive';
 
 const STATUS_TONES: Record<string, Tone> = {
-  IN_QUALIFICATION: 'navy',
+  IN_QUALIFICATION: 'slate',
   IN_FRONT_OFFICE: 'blue',
   IN_MIDDLE_OFFICE: 'purple',
-  IN_BACK_OFFICE: 'gold',
+  IN_BACK_OFFICE: 'olive',
   IN_VALIDATION: 'amber',
   RESOLVED: 'green',
   REJECTED: 'red',
@@ -21,10 +21,10 @@ const PRIORITY_TONES: Record<string, Tone> = {
 };
 
 const STEP_TONES: Record<string, Tone> = {
-  QUALIFICATION: 'navy',
+  QUALIFICATION: 'slate',
   FRONT_OFFICE: 'blue',
   MIDDLE_OFFICE: 'purple',
-  BACK_OFFICE: 'gold',
+  BACK_OFFICE: 'olive',
   VALIDATION: 'amber',
 };
 

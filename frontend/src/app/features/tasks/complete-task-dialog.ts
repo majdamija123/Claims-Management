@@ -144,12 +144,12 @@ import { ToastService } from '../../core/toast.service';
         transition: border-color 0.14s ease, background 0.14s ease;
       }
       .decision:hover {
-        border-color: var(--navy-600);
+        border-color: var(--cdg-slate-600);
       }
       .decision.selected {
-        border-color: var(--navy-700);
-        background: var(--navy-050);
-        box-shadow: 0 0 0 3px var(--navy-100);
+        border-color: var(--cdg-slate-700);
+        background: var(--cdg-slate-050);
+        box-shadow: 0 0 0 3px var(--cdg-slate-100);
       }
       .decision.destructive.selected {
         border-color: var(--red-600);
