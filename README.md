@@ -338,6 +338,43 @@ rather than an error page. The unit can always work without it.
 
 ---
 
+## 8 ter. Sending customer replies through a real mailbox
+
+`docker compose up -d` gives every environment Mailpit by default, which catches mail
+instead of delivering it — the point during development. To actually deliver the closing
+letter to the customer, point the mail settings at a real account and turn sending on:
+
+```bash
+cd backend
+set MAIL_ENABLED=true
+set MAIL_HOST=smtp.gmail.com
+set MAIL_PORT=587
+set MAIL_SMTP_AUTH=true
+set MAIL_SMTP_STARTTLS=true
+set MAIL_USERNAME=you@gmail.com
+set MAIL_PASSWORD=your-16-character-app-password
+set MAIL_FROM=you@gmail.com
+mvnw spring-boot:run
+```
+
+**Gmail will not accept your normal password here.** With 2-Step Verification turned on
+(**myaccount.google.com/security**), generate an **App Password**
+(**myaccount.google.com/apppasswords** — pick "Mail" as the app), and use that 16-character
+value for `MAIL_PASSWORD`. `MAIL_FROM` should match `MAIL_USERNAME`: Gmail rewrites or
+rejects mail sent as anyone else.
+
+Other providers only change the first few lines: Outlook/Office 365 is
+`smtp.office365.com:587` with the same `auth`/`starttls` flags and your normal account
+password (unless the organisation enforces its own app passwords); Yahoo Mail is
+`smtp.mail.yahoo.com:587` with a Yahoo App Password the same way Gmail needs one.
+
+Close a complaint as `RESOLVED` or `REJECTED` and the customer receives the branded letter
+for real. Nothing changes in the code for this — `cdg.mail.*` and the `MAIL_*` variables are
+the whole of it, and leaving `MAIL_ENABLED` unset keeps every environment on Mailpit by
+default.
+
+---
+
 ## 9. Configuration
 
 Every setting lives under `cdg.*` in `backend/src/main/resources/application.yml`, and each
