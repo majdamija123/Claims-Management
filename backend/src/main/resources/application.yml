@@ -27,12 +27,22 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
-  # Points at the Mailpit container from docker-compose.yml, which accepts anything and
-  # needs no credentials - open http://localhost:8025 to read what was sent. Nothing is
-  # actually sent until cdg.mail.enabled=true, whatever is configured here.
+  # Defaults point at the Mailpit container from docker-compose.yml, which accepts anything
+  # and needs no credentials - open http://localhost:8025 to read what was sent. Override
+  # MAIL_HOST/PORT/USERNAME/PASSWORD (and the two SMTP flags below) to send through a real
+  # account instead - see README, "Sending customer replies through a real mailbox". Nothing
+  # is actually sent until cdg.mail.enabled=true either way.
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
 
   threads:
     virtual:
@@ -112,7 +122,7 @@ cdg:
 
   mail:
     enabled: ${MAIL_ENABLED:false}
-    from: reclamations@cdg.ma
+    from: ${MAIL_FROM:reclamations@cdg.ma}
     signature: Service Reclamations Clients - CDG
 
   jwt:
