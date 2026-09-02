@@ -26,6 +26,20 @@ Driven by the variables: qualificationDecision, foCanAnswer, moCanAnswer, valida
       <bpmn:outgoing>Flow_Start_Qualification</bpmn:outgoing>
     </bpmn:startEvent>
 
+    <!--
+      No zeebe:ioMapping outputs on the user tasks below, deliberately.
+
+      Zeebe only merges a completed task's variables into the process scope when the task
+      declares no output mapping. As soon as one is declared, the completion variables become
+      local to that task and *only* the mapped ones are propagated - silently dropping every
+      other variable the application sends (the SLA deadline of the next step, lastActor,
+      lastComment...). That surfaced as an incident on the next task, whose taskSchedule could
+      not find its sla* variable.
+
+      The application sends each gateway variable under the exact name the conditions read,
+      so the mappings were redundant to begin with. See TaskService#completionVariables.
+    -->
+
     <!-- ============ Qualification ============ -->
     <bpmn:userTask id="Task_Qualification" name="Qualification">
       <bpmn:extensionElements>
@@ -33,9 +47,6 @@ Driven by the variables: qualificationDecision, foCanAnswer, moCanAnswer, valida
         <zeebe:assignmentDefinition candidateGroups="qualification" />
         <zeebe:taskSchedule dueDate="=if is defined(slaQualification) then slaQualification else string(now() + duration(&quot;PT8H&quot;))" />
         <zeebe:priority>=if is defined(claimPriorityScore) then claimPriorityScore else 50</zeebe:priority>
-        <zeebe:ioMapping>
-          <zeebe:output source="=qualificationDecision" target="qualificationDecision" />
-        </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Start_Qualification</bpmn:incoming>
       <bpmn:incoming>Flow_Validee_Non</bpmn:incoming>
@@ -59,9 +70,6 @@ Driven by the variables: qualificationDecision, foCanAnswer, moCanAnswer, valida
         <zeebe:assignmentDefinition candidateGroups="front-office" />
         <zeebe:taskSchedule dueDate="=if is defined(slaFrontOffice) then slaFrontOffice else string(now() + duration(&quot;PT24H&quot;))" />
         <zeebe:priority>=if is defined(claimPriorityScore) then claimPriorityScore else 50</zeebe:priority>
-        <zeebe:ioMapping>
-          <zeebe:output source="=foCanAnswer" target="foCanAnswer" />
-        </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Valide_Oui</bpmn:incoming>
       <bpmn:outgoing>Flow_FO_Gateway</bpmn:outgoing>
@@ -80,9 +88,6 @@ Driven by the variables: qualificationDecision, foCanAnswer, moCanAnswer, valida
         <zeebe:assignmentDefinition candidateGroups="middle-office" />
         <zeebe:taskSchedule dueDate="=if is defined(slaMiddleOffice) then slaMiddleOffice else string(now() + duration(&quot;PT48H&quot;))" />
         <zeebe:priority>=if is defined(claimPriorityScore) then claimPriorityScore else 50</zeebe:priority>
-        <zeebe:ioMapping>
-          <zeebe:output source="=moCanAnswer" target="moCanAnswer" />
-        </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_FO_Non</bpmn:incoming>
       <bpmn:outgoing>Flow_MO_Gateway</bpmn:outgoing>
@@ -113,9 +118,6 @@ Driven by the variables: qualificationDecision, foCanAnswer, moCanAnswer, valida
         <zeebe:assignmentDefinition candidateGroups="validation" />
         <zeebe:taskSchedule dueDate="=if is defined(slaValidation) then slaValidation else string(now() + duration(&quot;PT24H&quot;))" />
         <zeebe:priority>=if is defined(claimPriorityScore) then claimPriorityScore else 50</zeebe:priority>
-        <zeebe:ioMapping>
-          <zeebe:output source="=validationDecision" target="validationDecision" />
-        </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_FO_Oui</bpmn:incoming>
       <bpmn:incoming>Flow_MO_Oui</bpmn:incoming>
