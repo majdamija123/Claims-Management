@@ -16,6 +16,7 @@ public class ApplicationProperties {
     private final Workflow workflow = new Workflow();
     private final Sla sla = new Sla();
     private final Ml ml = new Ml();
+    private final Assistant assistant = new Assistant();
     private final Mail mail = new Mail();
     private final Jwt jwt = new Jwt();
     private final Demo demo = new Demo();
@@ -34,6 +35,10 @@ public class ApplicationProperties {
 
     public Ml getMl() {
         return ml;
+    }
+
+    public Assistant getAssistant() {
+        return assistant;
     }
 
     public Mail getMail() {
@@ -353,6 +358,48 @@ public class ApplicationProperties {
     }
 
     /** Customer e-mail notifications. Disabled by default so nothing is sent by accident. */
+    /** The assistant that helps a unit read a complaint and draft its answer. */
+    public static class Assistant {
+
+        private boolean enabled = false;
+        private String apiKey = "";
+        private String model = "claude-opus-5";
+        /** Kept small: these are short, focused answers, not essays. */
+        private int maxTokens = 1200;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public int getMaxTokens() {
+            return maxTokens;
+        }
+
+        public void setMaxTokens(int maxTokens) {
+            this.maxTokens = maxTokens;
+        }
+    }
+
     public static class Mail {
 
         private boolean enabled = false;

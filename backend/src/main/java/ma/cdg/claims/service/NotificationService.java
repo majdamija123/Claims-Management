@@ -156,8 +156,11 @@ public class NotificationService {
                 nullSafe(claim.getSubject()), nullSafe(claim.getResolution()),
                 properties.getMail().getSignature());
 
-        return mail.send(claim.getCustomerEmail(),
-                "Your complaint %s has been resolved".formatted(claim.getReference()), body);
+        String html = CustomerLetter.resolvedHtml(claim.getCustomerName(), claim.getReference(),
+                claim.getSubject(), claim.getResolution(), properties.getMail().getSignature());
+
+        return mail.sendHtml(claim.getCustomerEmail(),
+                "Your complaint %s has been resolved".formatted(claim.getReference()), html, body);
     }
 
     /** Informs the customer that the complaint was not admissible. */
@@ -178,8 +181,11 @@ public class NotificationService {
                 nullSafe(claim.getSubject()), nullSafe(claim.getRejectionReason()),
                 properties.getMail().getSignature());
 
-        return mail.send(claim.getCustomerEmail(),
-                "About your complaint %s".formatted(claim.getReference()), body);
+        String html = CustomerLetter.rejectedHtml(claim.getCustomerName(), claim.getReference(),
+                claim.getSubject(), claim.getRejectionReason(), properties.getMail().getSignature());
+
+        return mail.sendHtml(claim.getCustomerEmail(),
+                "About your complaint %s".formatted(claim.getReference()), html, body);
     }
 
     private static String nullSafe(String value) {

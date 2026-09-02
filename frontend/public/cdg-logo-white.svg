@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 262 96" role="img"
+     aria-label="CDG - Caisse de Depot et de Gestion">
+  <!--
+    Monochrome white version, for the green sidebar. Same geometry as
+    cdg-logo.svg; replace both together when swapping in official artwork.
+  -->
+  <g fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="butt">
+    <path d="M69.5 20.1 A34 34 0 1 0 69.5 75.9"/>
+    <path d="M104 14 L104 82 M104 14 A34 34 0 0 1 104 82"/>
+    <path d="M215.5 20.1 A34 34 0 1 0 215.5 75.9"/>
+    <path d="M196 56 L228 56"/>
+  </g>
+  <path d="M222 40 L254 40 L254 8 Z" fill="#ffffff"/>
+</svg>

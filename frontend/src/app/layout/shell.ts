@@ -22,7 +22,7 @@ interface NavItem {
     <div class="shell">
       <aside class="sidebar" [class.open]="menuOpen()">
         <div class="brand">
-          <div class="brand-mark">CDG</div>
+          <img class="brand-logo" src="cdg-logo-white.svg" alt="CDG" />
           <div class="brand-text">
             <strong>Claims</strong>
             <span>Customer complaints</span>
@@ -122,8 +122,8 @@ interface NavItem {
       .sidebar {
         width: var(--sidebar-width);
         flex: none;
-        background: var(--cdg-slate-900);
-        color: #d3dde1;
+        background: var(--cdg-green-700);
+        color: #e4efd2;
         display: flex;
         flex-direction: column;
         position: sticky;
@@ -133,26 +133,20 @@ interface NavItem {
       .brand {
         display: flex;
         align-items: center;
-        gap: 11px;
+        gap: 12px;
         padding: 18px 18px 20px;
       }
-      .brand-mark {
-        width: 38px;
-        height: 38px;
-        border-radius: 9px;
-        background: var(--cdg-green-500);
-        color: var(--cdg-slate-900);
-        font-weight: 700;
-        font-size: 13px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        letter-spacing: 0.02em;
+      .brand-logo {
+        height: 26px;
+        width: auto;
+        flex: none;
       }
       .brand-text {
         display: flex;
         flex-direction: column;
         line-height: 1.25;
+        border-left: 1px solid rgba(255, 255, 255, 0.28);
+        padding-left: 12px;
       }
       .brand-text strong {
         color: #fff;
@@ -160,7 +154,7 @@ interface NavItem {
       }
       .brand-text span {
         font-size: 11.5px;
-        color: #9aacb4;
+        color: #cfe2ab;
       }
       nav {
         flex: 1;
@@ -176,7 +170,7 @@ interface NavItem {
         gap: 11px;
         padding: 9px 12px;
         border-radius: var(--radius-sm);
-        color: #d3dde1;
+        color: #e4efd2;
         font-size: 13.5px;
         font-weight: 500;
         text-decoration: none;
@@ -186,7 +180,7 @@ interface NavItem {
         text-decoration: none;
       }
       .nav-item.active {
-        background: var(--cdg-slate-700);
+        background: rgba(255, 255, 255, 0.18);
         color: #fff;
       }
       .nav-icon {
@@ -198,7 +192,7 @@ interface NavItem {
         flex: 1;
       }
       .nav-badge {
-        background: var(--cdg-slate-600);
+        background: rgba(255, 255, 255, 0.22);
         color: #fff;
         border-radius: 999px;
         padding: 1px 7px;
@@ -213,12 +207,12 @@ interface NavItem {
         border-top: 1px solid rgba(255, 255, 255, 0.1);
       }
       .sidebar-foot .btn {
-        background: var(--cdg-green-500);
-        color: var(--cdg-slate-900);
+        background: var(--white);
+        color: var(--cdg-green-700);
         font-weight: 600;
       }
       .sidebar-foot .btn:hover {
-        background: var(--cdg-green-500);
+        background: #f2f7e8;
         text-decoration: none;
       }
 
@@ -306,8 +300,8 @@ interface NavItem {
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        background: var(--cdg-slate-100);
-        color: var(--cdg-slate-700);
+        background: var(--cdg-green-100);
+        color: var(--cdg-green-700);
         font-weight: 600;
         font-size: 12px;
         display: flex;

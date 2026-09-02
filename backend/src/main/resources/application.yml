@@ -27,6 +27,13 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
+  # Points at the Mailpit container from docker-compose.yml, which accepts anything and
+  # needs no credentials - open http://localhost:8025 to read what was sent. Nothing is
+  # actually sent until cdg.mail.enabled=true, whatever is configured here.
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+
   threads:
     virtual:
       enabled: true
@@ -93,6 +100,14 @@ cdg:
     enabled: ${ML_ENABLED:false}
     base-url: ${ML_BASE_URL:http://localhost:8000}
     timeout: 3s
+
+  # The per-unit assistant. Off unless a key is provided, and the application runs
+  # unchanged without it - the panel simply reports that it is not configured.
+  assistant:
+    enabled: ${ASSISTANT_ENABLED:false}
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${ASSISTANT_MODEL:claude-opus-5}
+    max-tokens: ${ASSISTANT_MAX_TOKENS:1200}
 
   mail:
     enabled: ${MAIL_ENABLED:false}

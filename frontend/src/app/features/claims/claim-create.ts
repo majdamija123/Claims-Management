@@ -183,7 +183,7 @@ import { ToastService, describeHttpError } from '../../core/toast.service';
         padding: 0 4px;
         font: inherit;
         font-size: 12.5px;
-        color: var(--cdg-slate-600);
+        color: var(--cdg-green-600);
         cursor: pointer;
         text-decoration: underline;
       }
