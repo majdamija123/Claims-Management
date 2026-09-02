@@ -363,7 +363,7 @@ public class ApplicationProperties {
 
         private boolean enabled = false;
         private String apiKey = "";
-        private String model = "llama-3.3-70b-versatile";
+        private String model = "openai/gpt-oss-120b";
         /** Kept small: these are short, focused answers, not essays. */
         private int maxTokens = 1200;
 

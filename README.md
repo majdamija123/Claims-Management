@@ -357,7 +357,7 @@ one can be overridden by an environment variable.
 | `cdg.ml.enabled` | `false` | call the classification service |
 | `cdg.assistant.enabled` | `false` | offer the per-unit assistant on a complaint |
 | `cdg.assistant.api-key` | — | Groq API key (`GROQ_API_KEY`) |
-| `cdg.assistant.model` | `llama-3.3-70b-versatile` | model behind the assistant |
+| `cdg.assistant.model` | `openai/gpt-oss-120b` | model behind the assistant |
 | `cdg.mail.enabled` | `false` | actually send customer e-mails |
 | `cdg.jwt.secret` | dev value | **override in every environment** (≥ 32 characters) |
 | `cdg.demo.seed-users` / `.seed-claims` | `true` | create the demo accounts and complaints |
