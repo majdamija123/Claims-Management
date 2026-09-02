@@ -43,9 +43,11 @@ docker compose up -d
 - **Port already allocated** — something else (often a previous `docker compose up`
   that wasn't stopped) is holding 8085/26500/9600. `docker compose down` it, or
   `docker ps` to find the culprit.
-- **Incident on a user task, error `Invalid date-time format '...@GMT'`** — fixed by the
-  `TZ=UTC` in `.env`. Without it, the container's default zone is a named region ("GMT")
-  rather than a fixed offset, and the BPMN's `zeebe:taskSchedule` fallback expression
-  (`string(now() + duration(...))`) then renders in a zone-literal format Zeebe's own
-  due-date parser rejects. If you still see this after pulling the fix, `docker compose down`
-  and `up -d` again so the container picks up the new `.env` value.
+- **Incident on a user task: `No variable found with name 'slaFrontOffice'`** (or any other
+  `sla*` variable), usually alongside `Invalid date-time format '...@GMT'` from the fallback
+  the missing variable falls through to. This was a bug in the process model, fixed by
+  removing the `zeebe:ioMapping` outputs from the user tasks: Zeebe merges a completed task's
+  variables into the process scope only while the task declares *no* output mapping, so the
+  mappings were silently dropping every other variable the backend sends. Make sure the
+  backend has redeployed the model (it does so on startup) and start a **new** complaint —
+  instances already running stay on the old version.

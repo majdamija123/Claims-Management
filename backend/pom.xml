@@ -20,6 +20,7 @@
   <properties>
     <java.version>21</java.version>
     <camunda.version>8.9.11</camunda.version>
+    <anthropic.version>2.34.0</anthropic.version>
     <jjwt.version>0.13.0</jjwt.version>
     <springdoc.version>2.9.0</springdoc.version>
     <poi.version>5.5.1</poi.version>
@@ -130,6 +131,13 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-mail</artifactId>
+    </dependency>
+
+    <!-- The assistant that helps each unit read a complaint and draft its answer. -->
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java</artifactId>
+      <version>${anthropic.version}</version>
     </dependency>
 
     <dependency>

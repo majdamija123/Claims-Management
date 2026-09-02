@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import ma.cdg.claims.service.AssistantService;
 import ma.cdg.claims.camunda.CamundaGatewayException;
 import ma.cdg.claims.error.AccessDeniedForTaskException;
 import ma.cdg.claims.error.BusinessRuleException;
@@ -43,6 +44,13 @@ public class GlobalExceptionHandler {
     ProblemDetail onBadCredentials(BadCredentialsException e, HttpServletRequest request) {
         return problem(HttpStatus.UNAUTHORIZED, "Authentication failed",
                 "Incorrect username or password", request);
+    }
+
+    @ExceptionHandler(AssistantService.AssistantUnavailableException.class)
+    ProblemDetail onAssistantUnavailable(AssistantService.AssistantUnavailableException e,
+                                         HttpServletRequest request) {
+        // The message is written for the agent reading it in the panel.
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "Assistant unavailable", e.getMessage(), request);
     }
 
     @ExceptionHandler(CamundaGatewayException.class)

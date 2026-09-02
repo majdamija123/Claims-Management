@@ -13,7 +13,7 @@ import { describeHttpError } from '../../core/toast.service';
     <div class="login-page">
       <div class="panel">
         <div class="brand">
-          <div class="brand-mark">CDG</div>
+          <img class="brand-logo" src="cdg-logo.svg" alt="CDG" />
           <div>
             <h1>Claims Management</h1>
             <p class="muted small">Customer complaint handling — Caisse de Dépôt et de Gestion</p>
@@ -112,16 +112,9 @@ import { describeHttpError } from '../../core/toast.service';
         align-items: center;
         margin-bottom: 32px;
       }
-      .brand-mark {
-        width: 50px;
-        height: 50px;
-        border-radius: 12px;
-        background: var(--navy-800);
-        color: var(--gold-500);
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      .brand-logo {
+        height: 38px;
+        width: auto;
         flex: none;
       }
       h1 {
@@ -153,8 +146,8 @@ import { describeHttpError } from '../../core/toast.service';
         border-radius: 4px;
       }
       .aside {
-        background: linear-gradient(160deg, var(--navy-900), var(--navy-700));
-        color: #dbe6f7;
+        background: linear-gradient(160deg, var(--cdg-green-800), var(--cdg-green-600));
+        color: #e4efd2;
         padding: 48px min(6vw, 64px);
         display: flex;
         flex-direction: column;
@@ -176,7 +169,7 @@ import { describeHttpError } from '../../core/toast.service';
         max-width: 46ch;
       }
       .aside strong {
-        color: var(--gold-500);
+        color: #ffffff;
       }
       @media (max-width: 900px) {
         .login-page {

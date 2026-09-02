@@ -1,11 +1,13 @@
 package ma.cdg.claims.service;
 
+import jakarta.mail.internet.MimeMessage;
 import ma.cdg.claims.config.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 /**
@@ -54,6 +56,44 @@ public class MailSenderAdapter {
             log.info("Sent '{}' to {}", subject, to);
             return true;
         } catch (RuntimeException e) {
+            log.error("Could not send '{}' to {}: {}", subject, to, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Sends a branded letter to the customer, as HTML with a plain-text alternative.
+     *
+     * <p>Both parts carry the same wording, so a client that refuses HTML still shows the
+     * complete answer rather than an empty message.
+     *
+     * @return true when the message was handed to a mail server
+     */
+    public boolean sendHtml(String to, String subject, String html, String text) {
+        if (to == null || to.isBlank()) {
+            log.debug("No e-mail address available, skipping '{}'", subject);
+            return false;
+        }
+        if (!properties.getMail().isEnabled()) {
+            log.info("[mail disabled] to={} subject='{}'\n{}", to, subject, text);
+            return false;
+        }
+        JavaMailSender sender = mailSender.getIfAvailable();
+        if (sender == null) {
+            log.warn("cdg.mail.enabled=true but no mail server is configured; '{}' was not sent", subject);
+            return false;
+        }
+        try {
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(properties.getMail().getFrom());
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(text, html);
+            sender.send(message);
+            log.info("Sent '{}' to {}", subject, to);
+            return true;
+        } catch (Exception e) {
             log.error("Could not send '{}' to {}: {}", subject, to, e.getMessage());
             return false;
         }

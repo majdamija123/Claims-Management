@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 262 96" role="img"
+     aria-label="CDG - Caisse de Depot et de Gestion">
+  <!--
+    A geometric rendering of the CDG monogram: slate C and D, green G with the
+    rising arrow. Replace this file with the official artwork (keeping the name
+    and roughly the proportions) to use it everywhere the application shows the
+    logo - no code change needed.
+  -->
+  <g fill="none" stroke-width="20" stroke-linecap="butt">
+    <!-- C -->
+    <path d="M69.5 20.1 A34 34 0 1 0 69.5 75.9" stroke="#34474f"/>
+    <!-- D: stem plus the bowl -->
+    <path d="M104 14 L104 82 M104 14 A34 34 0 0 1 104 82" stroke="#34474f"/>
+    <!-- G: the same bowl as the C, closed by its crossbar -->
+    <path d="M215.5 20.1 A34 34 0 1 0 215.5 75.9" stroke="#7ba928"/>
+    <path d="M196 56 L228 56" stroke="#7ba928"/>
+  </g>
+  <!-- the rising arrow the mark ends on -->
+  <path d="M222 40 L254 40 L254 8 Z" fill="#7ba928"/>
+</svg>

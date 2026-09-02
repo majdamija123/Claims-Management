@@ -81,10 +81,10 @@ import { DateTimePipe, RelativeTimePipe } from '../../shared/format';
         background: var(--ink-050);
       }
       .list li.unread {
-        background: var(--navy-050);
+        background: var(--cdg-green-050);
       }
       .list li.unread:hover {
-        background: var(--navy-100);
+        background: var(--cdg-green-100);
       }
       .marker {
         width: 8px;
@@ -92,7 +92,7 @@ import { DateTimePipe, RelativeTimePipe } from '../../shared/format';
         border-radius: 50%;
         margin-top: 6px;
         flex: none;
-        background: var(--navy-600);
+        background: var(--cdg-green-600);
       }
       .marker.green {
         background: var(--green-600);

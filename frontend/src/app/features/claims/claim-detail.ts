@@ -7,6 +7,7 @@ import { ClaimDetail, ReferenceData, TaskSummary } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
 import { CHIPS } from '../../shared/chips';
 import { DateTimePipe, RelativeTimePipe } from '../../shared/format';
+import { AssistantPanelComponent } from '../../shared/assistant-panel';
 import { CompleteTaskDialogComponent } from '../tasks/complete-task-dialog';
 
 type Tab = 'overview' | 'timeline' | 'workflow';
@@ -15,7 +16,15 @@ type Tab = 'overview' | 'timeline' | 'workflow';
 @Component({
   selector: 'app-claim-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, DateTimePipe, RelativeTimePipe, CompleteTaskDialogComponent, ...CHIPS],
+  imports: [
+    FormsModule,
+    RouterLink,
+    DateTimePipe,
+    RelativeTimePipe,
+    CompleteTaskDialogComponent,
+    AssistantPanelComponent,
+    ...CHIPS,
+  ],
   template: `
     <div class="page">
       @if (loading()) {
@@ -195,6 +204,12 @@ type Tab = 'overview' | 'timeline' | 'workflow';
                   </div>
                 </div>
               </div>
+
+              <app-assistant-panel
+                [claimId]="detail.summary.id"
+                hint="Advice for your unit, on this complaint"
+                (useAnswer)="useSuggestedAnswer($event)"
+              />
             </div>
           }
 
@@ -300,7 +315,12 @@ type Tab = 'overview' | 'timeline' | 'workflow';
     </div>
 
     @if (activeTask(); as task) {
-      <app-complete-task-dialog [task]="task" (cancelled)="activeTask.set(null)" (completed)="onCompleted()" />
+      <app-complete-task-dialog
+        [task]="task"
+        [draftAnswer]="draftAnswer()"
+        (cancelled)="activeTask.set(null)"
+        (completed)="onCompleted()"
+      />
     }
   `,
   styles: [
@@ -348,7 +368,7 @@ type Tab = 'overview' | 'timeline' | 'workflow';
         color: var(--green-600);
       }
       .step.current .bullet {
-        background: var(--navy-800);
+        background: var(--cdg-green-700);
         color: #fff;
       }
       .step-label {
@@ -360,7 +380,7 @@ type Tab = 'overview' | 'timeline' | 'workflow';
       }
       .open-tasks {
         margin-bottom: 16px;
-        border-left: 3px solid var(--navy-700);
+        border-left: 3px solid var(--cdg-green-700);
       }
       .open-task {
         display: flex;
@@ -416,7 +436,7 @@ type Tab = 'overview' | 'timeline' | 'workflow';
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        background: var(--navy-600);
+        background: var(--cdg-green-600);
         margin-top: 4px;
         flex: none;
         z-index: 1;
@@ -469,6 +489,9 @@ export class ClaimDetailComponent implements OnInit {
   readonly cancelling = signal(false);
 
   comment = '';
+
+  /** An answer drafted by the assistant, waiting to seed the next completion dialog. */
+  readonly draftAnswer = signal('');
   cancelReason = '';
 
   ngOnInit(): void {
@@ -574,6 +597,15 @@ export class ClaimDetailComponent implements OnInit {
         next: () => this.toasts.success('Dossier downloaded'),
         error: (error) => this.toasts.fromHttp(error, 'The dossier could not be generated'),
       });
+  }
+
+  /**
+   * Carries a drafted answer into the completion dialog. If the agent is already holding
+   * the task, the dialog opens on it; otherwise the draft waits until they take it.
+   */
+  useSuggestedAnswer(text: string): void {
+    this.draftAnswer.set(text);
+    this.toasts.success('Draft ready — it will fill the answer when you handle the task.');
   }
 
   onCompleted(): void {

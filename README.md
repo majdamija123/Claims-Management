@@ -207,7 +207,10 @@ compliance and a 30-day trend, plus Excel and CSV exports of any filtered list.
 
 **Notifications** — in-app when work arrives, a deadline is missed, or a complaint the user
 registered is closed; by e-mail to the customer on closure or rejection (off by default, so
-nothing is sent by accident — set `cdg.mail.enabled=true`).
+nothing is sent by accident — set `cdg.mail.enabled=true`). The closing letter carries the
+answer the unit wrote, in the CDG colours, as HTML with a plain-text alternative;
+`docker compose up -d` starts Mailpit on <http://localhost:8025>, which catches every
+message so you can read what a customer would receive.
 
 ---
 
@@ -299,6 +302,32 @@ answered.
 
 ---
 
+## 8 bis. The per-unit assistant
+
+Each complaint carries an **Assistant** panel that the unit holding it can ask about that
+complaint — what the customer is actually asking for, what is missing before a decision,
+or a draft of the answer to send. A drafted answer can be carried straight into the
+completion dialog with one click.
+
+It is scoped, not general: the server decides which unit is asking from the session rather
+than the request, and tells the model only the decisions that unit may actually take —
+read from the same transition table the buttons come from. So the Back Office is never
+coached towards an escalation it has nowhere to send, and the advice cannot drift from what
+the engine will accept. The complaint's own record is the only source of fact, and it is
+handed over fenced off and labelled as data: the wording is the customer's, and nothing
+inside it can redirect the assistant.
+
+```bash
+cd backend
+ASSISTANT_ENABLED=true ANTHROPIC_API_KEY=sk-ant-... ./mvnw spring-boot:run
+```
+
+Off by default. Without a key the panel does not appear at all, and every failure — an
+unreachable API, a rejected key — degrades to a line in the panel rather than an error
+page. The unit can always work without it.
+
+---
+
 ## 9. Configuration
 
 Every setting lives under `cdg.*` in `backend/src/main/resources/application.yml`, and each
@@ -316,6 +345,9 @@ one can be overridden by an environment variable.
 | `cdg.sla.steps.*` | 8h / 24h / 48h / 72h / 24h | deadline budget per step |
 | `cdg.sla.warning-threshold` | `0.75` | when a deadline starts showing as "due soon" |
 | `cdg.ml.enabled` | `false` | call the classification service |
+| `cdg.assistant.enabled` | `false` | offer the per-unit assistant on a complaint |
+| `cdg.assistant.api-key` | — | Anthropic API key (`ANTHROPIC_API_KEY`) |
+| `cdg.assistant.model` | `claude-opus-5` | model behind the assistant |
 | `cdg.mail.enabled` | `false` | actually send customer e-mails |
 | `cdg.jwt.secret` | dev value | **override in every environment** (≥ 32 characters) |
 | `cdg.demo.seed-users` / `.seed-claims` | `true` | create the demo accounts and complaints |

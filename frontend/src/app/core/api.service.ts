@@ -187,6 +187,24 @@ export class ApiService {
       }),
     );
   }
+
+  // ------------------------------------------------------------------ assistant
+
+  /** Whether the assistant is configured on the server, so the panel can hide itself. */
+  assistantAvailable(): Observable<{ available: boolean }> {
+    return this.http.get<{ available: boolean }>('/api/assistant/status');
+  }
+
+  /** Sends the whole conversation; the unit asking is taken from the session, not the body. */
+  askAssistant(claimId: number, messages: AssistantTurn[]): Observable<{ reply: string }> {
+    return this.http.post<{ reply: string }>(`/api/assistant/claims/${claimId}`, { messages });
+  }
+}
+
+/** One turn of an assistant conversation. */
+export interface AssistantTurn {
+  fromUser: boolean;
+  text: string;
 }
 
 /** Turns a filter object into query parameters, dropping empties and expanding arrays. */
