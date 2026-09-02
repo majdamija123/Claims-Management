@@ -1,11 +1,7 @@
 package ma.cdg.claims.service;
 
-import com.anthropic.client.AnthropicClient;
-import com.anthropic.client.okhttp.AnthropicOkHttpClient;
-import com.anthropic.models.messages.Message;
-import com.anthropic.models.messages.MessageCreateParams;
-import com.anthropic.models.messages.OutputConfig;
-import com.anthropic.models.messages.ThinkingConfigAdaptive;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
 import java.util.List;
 import ma.cdg.claims.config.ApplicationProperties;
 import ma.cdg.claims.domain.Claim;
@@ -15,9 +11,13 @@ import ma.cdg.claims.domain.WorkflowStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
 /**
  * The assistant each unit can ask about the complaint it is holding.
+ *
+ * <p>Backed by Groq, over its OpenAI-compatible chat completions endpoint — no SDK, just
+ * Spring's own {@link RestClient}, since the wire format is a handful of JSON fields.
  *
  * <p>It is deliberately narrow: it is told which unit is asking, which decisions that unit
  * may actually take, and the complaint's own record — so the Back Office is never coached
@@ -31,9 +31,13 @@ import org.springframework.stereotype.Service;
 public class AssistantService {
 
     private static final Logger log = LoggerFactory.getLogger(AssistantService.class);
+    private static final String GROQ_BASE_URL = "https://api.groq.com/openai/v1";
+
+    /** Low but not zero: still a fluent draft, without wandering on a factual question. */
+    private static final double TEMPERATURE = 0.3;
 
     private final ApplicationProperties properties;
-    private volatile AnthropicClient client;
+    private volatile RestClient client;
 
     public AssistantService(ApplicationProperties properties) {
         this.properties = properties;
@@ -56,37 +60,33 @@ public class AssistantService {
     public String answer(Claim claim, WorkflowStep step, List<Turn> history) {
         if (!isAvailable()) {
             throw new AssistantUnavailableException(
-                    "The assistant is not configured. Set ASSISTANT_ENABLED=true and ANTHROPIC_API_KEY.");
+                    "The assistant is not configured. Set ASSISTANT_ENABLED=true and GROQ_API_KEY.");
         }
         if (history.isEmpty()) {
             throw new AssistantUnavailableException("Ask a question first.");
         }
 
-        MessageCreateParams.Builder params = MessageCreateParams.builder()
-                .model(properties.getAssistant().getModel())
-                .maxTokens(properties.getAssistant().getMaxTokens())
-                .thinking(ThinkingConfigAdaptive.builder().build())
-                // These are short reasoning tasks over a page of context; the extra
-                // deliberation of a higher effort buys nothing here.
-                .outputConfig(OutputConfig.builder().effort(OutputConfig.Effort.MEDIUM).build())
-                .system(systemPrompt(claim, step));
-
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage("system", systemPrompt(claim, step)));
         for (Turn turn : history) {
-            if (turn.fromUser()) {
-                params.addUserMessage(turn.text());
-            } else {
-                params.addAssistantMessage(turn.text());
-            }
+            messages.add(new ChatMessage(turn.fromUser() ? "user" : "assistant", turn.text()));
         }
 
-        try {
-            Message response = client().messages().create(params.build());
-            String text = response.content().stream()
-                    .flatMap(block -> block.text().stream())
-                    .map(textBlock -> textBlock.text())
-                    .reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b);
+        ChatRequest request = new ChatRequest(properties.getAssistant().getModel(), messages,
+                properties.getAssistant().getMaxTokens(), TEMPERATURE);
 
-            if (text.isBlank()) {
+        try {
+            ChatResponse response = client().post()
+                    .uri("/chat/completions")
+                    .body(request)
+                    .retrieve()
+                    .body(ChatResponse.class);
+
+            String text = response == null || response.choices() == null || response.choices().isEmpty()
+                    ? null
+                    : response.choices().get(0).message().content();
+
+            if (text == null || text.isBlank()) {
                 throw new AssistantUnavailableException("The assistant returned nothing. Try rephrasing.");
             }
             return text;
@@ -215,15 +215,16 @@ public class AssistantService {
     }
 
     /** Built once, on first use, so a missing key never breaks application startup. */
-    private AnthropicClient client() {
-        AnthropicClient existing = client;
+    private RestClient client() {
+        RestClient existing = client;
         if (existing != null) {
             return existing;
         }
         synchronized (this) {
             if (client == null) {
-                client = AnthropicOkHttpClient.builder()
-                        .apiKey(properties.getAssistant().getApiKey())
+                client = RestClient.builder()
+                        .baseUrl(GROQ_BASE_URL)
+                        .defaultHeader("Authorization", "Bearer " + properties.getAssistant().getApiKey())
                         .build();
             }
             return client;
@@ -239,5 +240,20 @@ public class AssistantService {
         public AssistantUnavailableException(String message) {
             super(message);
         }
+    }
+
+    // ------------------------------------------------------- Groq's wire format (OpenAI-compatible)
+
+    private record ChatMessage(String role, String content) {
+    }
+
+    private record ChatRequest(String model, List<ChatMessage> messages,
+                               @JsonProperty("max_tokens") int maxTokens, double temperature) {
+    }
+
+    private record ChatResponse(List<Choice> choices) {
+    }
+
+    private record Choice(ChatMessage message) {
     }
 }

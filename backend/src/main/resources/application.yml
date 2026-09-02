@@ -101,12 +101,13 @@ cdg:
     base-url: ${ML_BASE_URL:http://localhost:8000}
     timeout: 3s
 
-  # The per-unit assistant. Off unless a key is provided, and the application runs
-  # unchanged without it - the panel simply reports that it is not configured.
+  # The per-unit assistant, served by Groq (console.groq.com/keys - free tier available).
+  # Off unless a key is provided, and the application runs unchanged without it - the
+  # panel simply reports that it is not configured.
   assistant:
     enabled: ${ASSISTANT_ENABLED:false}
-    api-key: ${ANTHROPIC_API_KEY:}
-    model: ${ASSISTANT_MODEL:claude-opus-5}
+    api-key: ${GROQ_API_KEY:}
+    model: ${ASSISTANT_MODEL:llama-3.3-70b-versatile}
     max-tokens: ${ASSISTANT_MAX_TOKENS:1200}
 
   mail:

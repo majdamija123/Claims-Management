@@ -319,12 +319,14 @@ inside it can redirect the assistant.
 
 ```bash
 cd backend
-ASSISTANT_ENABLED=true ANTHROPIC_API_KEY=sk-ant-... ./mvnw spring-boot:run
+ASSISTANT_ENABLED=true GROQ_API_KEY=gsk_... ./mvnw spring-boot:run
 ```
 
-Off by default. Without a key the panel does not appear at all, and every failure — an
-unreachable API, a rejected key — degrades to a line in the panel rather than an error
-page. The unit can always work without it.
+Backed by [Groq](https://console.groq.com/keys), over its OpenAI-compatible chat
+completions endpoint — no SDK, a plain REST call, and a free tier that is enough to
+demonstrate this. Off by default. Without a key the panel does not appear at all, and
+every failure — an unreachable API, a rejected key — degrades to a line in the panel
+rather than an error page. The unit can always work without it.
 
 ---
 
@@ -346,8 +348,8 @@ one can be overridden by an environment variable.
 | `cdg.sla.warning-threshold` | `0.75` | when a deadline starts showing as "due soon" |
 | `cdg.ml.enabled` | `false` | call the classification service |
 | `cdg.assistant.enabled` | `false` | offer the per-unit assistant on a complaint |
-| `cdg.assistant.api-key` | — | Anthropic API key (`ANTHROPIC_API_KEY`) |
-| `cdg.assistant.model` | `claude-opus-5` | model behind the assistant |
+| `cdg.assistant.api-key` | — | Groq API key (`GROQ_API_KEY`) |
+| `cdg.assistant.model` | `llama-3.3-70b-versatile` | model behind the assistant |
 | `cdg.mail.enabled` | `false` | actually send customer e-mails |
 | `cdg.jwt.secret` | dev value | **override in every environment** (≥ 32 characters) |
 | `cdg.demo.seed-users` / `.seed-claims` | `true` | create the demo accounts and complaints |
