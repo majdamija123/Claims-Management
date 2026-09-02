@@ -138,8 +138,8 @@ import { AssistantContextService } from '../core/assistant-context.service';
       }
 
       .panel {
-        width: min(400px, calc(100vw - 44px));
-        max-height: min(560px, calc(100vh - 130px));
+        width: min(480px, calc(100vw - 44px));
+        max-height: min(680px, calc(100vh - 110px));
         background: var(--white);
         border: 1px solid var(--ink-200);
         border-radius: var(--radius-lg);
@@ -191,11 +191,11 @@ import { AssistantContextService } from '../core/assistant-context.service';
 
       .thread {
         flex: 1;
-        padding: 14px;
+        padding: 16px;
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        gap: 10px;
+        gap: 12px;
         overflow-y: auto;
       }
       .empty-note {
@@ -234,10 +234,11 @@ import { AssistantContextService } from '../core/assistant-context.service';
       .bubble {
         background: var(--ink-100);
         border-radius: 10px;
-        padding: 9px 12px;
-        font-size: 13px;
-        line-height: 1.6;
+        padding: 11px 14px;
+        font-size: 13.5px;
+        line-height: 1.65;
         white-space: pre-wrap;
+        max-width: 92%;
       }
       .turn.mine .bubble {
         background: var(--cdg-green-100);
@@ -265,7 +266,7 @@ import { AssistantContextService } from '../core/assistant-context.service';
       }
       .composer input {
         flex: 1;
-        min-height: 34px;
+        min-height: 38px;
       }
 
       @media (max-width: 620px) {
