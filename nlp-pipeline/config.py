@@ -147,7 +147,7 @@ LLM_DISABLE_THINKING = True
 # merged into a single class. A few hundred distinct values demonstrate that
 # just as well as two thousand. Values past the cap keep their rule-cleaned
 # text.
-LLM_CONCLUSION_LIMIT = 150
+LLM_CONCLUSION_LIMIT = 25
 
 # Descriptions are deduplicated before being sent, so this caps distinct texts,
 # not rows. None cleans every distinct description.
@@ -161,7 +161,7 @@ LLM_CONCLUSION_LIMIT = 150
 # the cap keep their rule-cleaned text and the pipeline still runs end to end,
 # so a partial semantic pass is a legitimate result to present, as long as the
 # report says so.
-LLM_DESCRIPTION_LIMIT = 50
+LLM_DESCRIPTION_LIMIT = 25
 
 # --------------------------------------------------------------------------- features
 
