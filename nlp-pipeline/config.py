@@ -129,6 +129,13 @@ TARGETS = {
 LLM_MODEL = "qwen3:8b"
 LLM_TEMPERATURE = 0.0
 
+# Qwen3 reasons out loud inside <think> tags before answering. The reasoning is
+# stripped from the answer, but it is generated first, and generation is what
+# costs time: on a CPU it is several times more tokens than the answer itself,
+# thrown away. "/no_think" is Qwen3's own switch to skip it. Turn this off only
+# to compare answer quality with reasoning on.
+LLM_DISABLE_THINKING = True
+
 # Descriptions are deduplicated before being sent, so this caps distinct texts,
 # not rows. None cleans every distinct description.
 LLM_DESCRIPTION_LIMIT = None

@@ -40,6 +40,7 @@ def main() -> None:
         model=config.LLM_MODEL,
         temperature=config.LLM_TEMPERATURE,
         cache_path=config.CACHE / "llm_cache.json",
+        disable_thinking=config.LLM_DISABLE_THINKING,
     )
 
     # ---------------------------------------------------------------- target

@@ -95,12 +95,19 @@ Complaint:
 class LlmCleaner:
     """A cached, deduplicating wrapper around a local Ollama model."""
 
-    def __init__(self, model: str, temperature: float, cache_path: Path):
+    def __init__(
+        self,
+        model: str,
+        temperature: float,
+        cache_path: Path,
+        disable_thinking: bool = True,
+    ):
         self.model = model
         self.cache_path = cache_path
         self.cache: dict[str, str] = self._load_cache()
         self._llm = None
         self._temperature = temperature
+        self._disable_thinking = disable_thinking
 
     # ------------------------------------------------------------------ cache
 
@@ -125,6 +132,11 @@ class LlmCleaner:
         return self._llm
 
     def _ask(self, prompt: str) -> str:
+        if self._disable_thinking:
+            # Qwen3's own switch. The <think> block is stripped below either way,
+            # but not generating it in the first place is what saves the time.
+            prompt = f"{prompt}\n/no_think"
+
         answer = self._client().invoke(prompt).content
         answer = THINK_BLOCK.sub("", answer)
         return answer.strip().strip('"').strip()
