@@ -44,6 +44,11 @@ for directory in (DATA, OUTPUTS, CACHE, FIGURES, METRICS, MODELS, DIAGNOSTIC):
 AUTOMATED_ACT_PATTERNS = [
     "Attestation livrée depuis",
     "SANS IDENTIFIANT",
+    # Found running step0_diagnostic.py on the full 510 108-row export: agent
+    # log notes rather than customer complaints, repeated hundreds of times.
+    "communication coupée",
+    "conversation interrompue",
+    "centre d'appel cnra",  # catches "N° centre d'appel cnra..." and "numéro centre d'appel cnra est..."
 ]
 
 # A description shorter than this is a contact block or a stray fragment, not a
