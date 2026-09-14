@@ -29,6 +29,45 @@ import pandas as pd
 import config
 
 
+def normalize_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Force every column to one consistent type before writing to parquet.
+
+    Reading a workbook sheet by sheet lets pandas infer a different dtype per
+    sheet: a column that is a clean int64 in most sheets can come back typed as
+    text wherever one sheet has a stray blank or non-numeric cell in it.
+    Concatenated, that column holds Python ints and strings side by side under
+    dtype "object" - which parquet has no representation for, and pyarrow
+    refuses to write ("tried to convert to double").
+
+    Every object column is resolved explicitly: to a number if every non-null
+    value genuinely is one, to a plain string otherwise. Columns that were
+    already a single consistent type are untouched.
+    """
+    fixed = []
+
+    for column in df.columns:
+        if df[column].dtype != "object":
+            continue
+
+        numeric = pd.to_numeric(df[column], errors="coerce")
+        # If coercing to numeric didn't manufacture new nulls, every value
+        # really was numeric (or already null) - safe to store as a number.
+        if numeric.isna().sum() == df[column].isna().sum():
+            df[column] = numeric
+            fixed.append((column, "numérique"))
+        else:
+            df[column] = df[column].astype("string")
+            fixed.append((column, "texte"))
+
+    if fixed:
+        print(f"\n{len(fixed)} colonne(s) au type incohérent entre feuilles, uniformisées :")
+        for column, kind in fixed:
+            print(f"  {column:<28} -> {kind}")
+
+    return df
+
+
 def main() -> None:
     if not config.RAW_EXCEL.exists():
         raise SystemExit(f"Not found: {config.RAW_EXCEL}\nPut the export there first.")
@@ -65,8 +104,23 @@ def main() -> None:
         print("(At or near the 65 536-row ceiling of the .xls format — this is")
         print(" almost certainly the complete export, not a truncated read.)")
 
+    df = normalize_dtypes(df)
+
     config.RAW_PARQUET.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(config.RAW_PARQUET, index=False)
+
+    try:
+        df.to_parquet(config.RAW_PARQUET, index=False)
+    except Exception:
+        # Parsing an .xls this size costs minutes. If something about this
+        # dataframe still won't write to parquet, a pickle fallback at least
+        # keeps that work instead of forcing a full re-parse to try again.
+        fallback = config.RAW_PARQUET.with_suffix(".pkl")
+        df.to_pickle(fallback)
+        print(f"\nWriting parquet failed - the parsed data was saved instead to:\n"
+              f"  {fallback}\n"
+              f"Send the error above; that pickle can be reloaded with "
+              f"pd.read_pickle() without re-reading the .xls.")
+        raise
 
     print(f"\nWritten to {config.RAW_PARQUET}")
     print(f"  {config.RAW_PARQUET.stat().st_size / 1e6:.0f} MB "
