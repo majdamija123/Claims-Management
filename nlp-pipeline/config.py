@@ -29,8 +29,9 @@ LLM_PARQUET = OUTPUTS / "03_llm_cleaned.parquet"
 FIGURES = OUTPUTS / "figures"
 METRICS = OUTPUTS / "metrics"
 MODELS = OUTPUTS / "models"
+DIAGNOSTIC = OUTPUTS / "diagnostic"
 
-for directory in (DATA, OUTPUTS, CACHE, FIGURES, METRICS, MODELS):
+for directory in (DATA, OUTPUTS, CACHE, FIGURES, METRICS, MODELS, DIAGNOSTIC):
     directory.mkdir(parents=True, exist_ok=True)
 
 # --------------------------------------------------------------------------- corpus

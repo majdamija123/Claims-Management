@@ -17,6 +17,7 @@ import pandas as pd
 import config
 from src import cleaning_rules as rules
 from src.evaluation import save_json
+from src.io_utils import load_export
 
 # Identifiers would let the model latch onto a request number instead of the text.
 ID_COLUMNS = [
@@ -45,28 +46,6 @@ RENAMES = {
 
 # The three tiers of the circuit, in the workbook's own numbering.
 ROUTING_LEVELS = {1: "FRONT_OFFICE", 2: "MIDDLE_OFFICE", 3: "BACK_OFFICE"}
-
-
-def load_export() -> pd.DataFrame:
-    """Read from the parquet copy, converting the .xls first if needed."""
-    if not config.RAW_PARQUET.exists():
-        if not config.RAW_EXCEL.exists():
-            raise SystemExit(
-                f"Neither {config.RAW_PARQUET.name} nor {config.RAW_EXCEL.name} found in "
-                f"{config.DATA}.\nPut the export there, or generate a synthetic stand-in "
-                f"with\n  python tools/make_demo_data.py"
-            )
-        print(f"{config.RAW_PARQUET.name} not found — converting the .xls first.\n"
-              f"(On the full export this can take several minutes; see\n"
-              f" tools/convert_xls_to_parquet.py if you want to run that step alone.)\n")
-        import subprocess
-        subprocess.run(
-            [sys.executable, str(Path(__file__).parent.parent / "tools" / "convert_xls_to_parquet.py")],
-            check=True,
-        )
-
-    print(f"Reading {config.RAW_PARQUET.name}")
-    return pd.read_parquet(config.RAW_PARQUET)
 
 
 def main() -> None:
