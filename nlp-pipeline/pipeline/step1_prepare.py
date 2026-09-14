@@ -18,30 +18,50 @@ import config
 from src import cleaning_rules as rules
 from src.evaluation import save_json
 from src.io_utils import load_export
+from src.sampling import stratified_subsample
 
-# Identifiers would let the model latch onto a request number instead of the text.
-ID_COLUMNS = [
+# The columns to drop, as specified by the department supervisor.
+#
+# Three kinds, all of them dropped for the same practical reason - none of them
+# can help predict a complaint's category from its text:
+#
+#   personal data     NOM, PRENOM, DATENAISSANCE, SEXE, LOCALITE, PAYS,
+#                     APPARTEMENT, IDENTIFIANT_CANAL (which holds the customer's
+#                     email address) - never belongs in a training set.
+#   identifiers       NUMEROREQUETE, IDT_CLIENT and the object/group code pairs -
+#                     a model given these latches onto a request number instead
+#                     of reading the text.
+#   empty or clerical everything the diagnostic flagged as empty, constant or
+#                     engagement-workflow bookkeeping.
+#
+# Two columns on the supervisor's list are deliberately NOT here: LIBELLE and
+# NIVEAU_TRAITEMENT. They are the two prediction targets - dropped as *inputs*
+# (renamed below, never fed to the model as features) but kept as *labels*,
+# without which there is no classification task left to run.
+DROPPED_COLUMNS = [
+    # personal data
+    "NOM", "PRENOM", "DATENAISSANCE", "SEXE", "LOCALITE", "PAYS",
+    "APPARTEMENT", "IDENTIFIANT_CANAL", "NATURECLIENT", "ORGANISMEEMPLOYEUR",
+    # identifiers
     "NUMEROREQUETE", "IDT_CLIENT", "IDT_GROUPE_OBJET_REQUETE",
     "ID_GROUPE_OBJET_REQUETE", "IDT_OBJET_REQUETE", "ID_OBJET_REQUETE",
-]
-
-# Personal data, which has no business in a training set, plus the columns this
-# export leaves empty or constant.
-UNUSABLE_COLUMNS = [
-    "OBSERVATION", "DEGRE_URGENCE", "ORGANISMEEMPLOYEUR", "COMMENTAIRE",
-    "REPONSE_ENGAGEMENT", "CONCLUSION_VALIDATION", "DATE_NOTIFICATION", "ENG_DATE",
-    "STATUT_ENGAGEMENT", "ENG_ETAT", "ENG_ACTEUR", "ANNEE", "APPARTEMENT",
-    "DATE_CREATION", "DATE_INITIATION", "DATE_REPONSE", "DATE_CLOTURE",
-    "DATENAISSANCE", "NOM", "PRENOM", "LOCALITE", "PAYS", "SEXE",
-    "MEDIATEUR", "ANALYSER", "CHARGE_TRAITEMENT", "ETATENGAGEMENT",
-    "IDENTIFIANT_CANAL",
+    "IDT_PRODUIT_CDG", "PRODUIT",
+    # dates
+    "ANNEE", "DATE_CREATION", "DATE_INITIATION", "DATE_REPONSE",
+    "DATE_CLOTURE", "DATE_NOTIFICATION",
+    # channels
+    "IDT_CANAL_ENTREE", "IDT_CANAL_SORTIE",
+    # empty, constant, or engagement bookkeeping
+    "OBSERVATION", "DEGRE_URGENCE", "COMMENTAIRE", "REPONSE_ENGAGEMENT",
+    "CONCLUSION_VALIDATION", "ENG_DATE", "ENG_ETAT", "ENG_ACTEUR",
+    "STATUT_ENGAGEMENT", "ETATENGAGEMENT", "MEDIATEUR", "ANALYSER",
+    "CHARGE_TRAITEMENT",
 ]
 
 RENAMES = {
     "LIBELLE": "REQUEST_CATEGORY",
     "LIBELLE_1": "REQUEST_SUBCATEGORY",
     "NIVEAU_TRAITEMENT": "ROUTING_LEVEL_CODE",
-    "IDT_CANAL_ENTREE": "CHANNEL_IN",
 }
 
 # The three tiers of the circuit, in the workbook's own numbering.
@@ -104,8 +124,11 @@ def main() -> None:
     stats["automated_acts_dropped"] = int(automated.sum())
 
     # --- columns ------------------------------------------------------------
-    df = df.drop(columns=ID_COLUMNS + UNUSABLE_COLUMNS, errors="ignore")
+    dropped = [column for column in DROPPED_COLUMNS if column in df.columns]
+    df = df.drop(columns=dropped)
     df = df.rename(columns=RENAMES)
+    print(f"Columns dropped: {len(dropped)} of {stats['columns_raw']}")
+    stats["columns_dropped"] = len(dropped)
 
     # --- targets ------------------------------------------------------------
     df["REQUEST_LABEL"] = (
@@ -127,7 +150,6 @@ def main() -> None:
     # and carried forward rather than dropped.
     df["CONCLUSION_MERGED"] = df.apply(rules.merge_conclusions, axis=1)
     df = df.drop(columns=rules.CONCLUSION_COLUMNS, errors="ignore")
-    stats["rows_with_conclusion"] = int(df["CONCLUSION_MERGED"].notna().sum())
 
     # --- descriptions with nothing in them ----------------------------------
     too_short = df["DESCRIPTION"].fillna("").str.len() < config.MIN_DESCRIPTION_CHARS
@@ -136,7 +158,39 @@ def main() -> None:
     df = df[~too_short].reset_index(drop=True)
     stats["short_descriptions_dropped"] = int(too_short.sum())
 
+    # --- rows with no label --------------------------------------------------
+    # A complaint whose category or routing tier is blank cannot be used by
+    # either task: there is nothing to learn to predict.
+    unlabelled = df["REQUEST_CATEGORY"].isna() | df["ROUTING_LEVEL"].isna()
+    if unlabelled.any():
+        print(f"Rows with no category or routing level dropped: {int(unlabelled.sum()):,}")
+    df = df[~unlabelled].reset_index(drop=True)
+    stats["unlabelled_rows_dropped"] = int(unlabelled.sum())
+
+    stats["rows_usable"] = len(df)
+
+    # --- the working sample --------------------------------------------------
+    # Everything above was measured on the whole export. What follows - the LLM
+    # pass above all - runs on a stratified quarter of it, which is what the
+    # available compute time allows. See config.CORPUS_SAMPLE_FRACTION.
+    if config.CORPUS_SAMPLE_FRACTION < 1.0:
+        before = len(df)
+        before_classes = df["REQUEST_CATEGORY"].nunique()
+        df = stratified_subsample(
+            df, "REQUEST_CATEGORY", config.CORPUS_SAMPLE_FRACTION,
+            config.RANDOM_SEED, config.MIN_SAMPLES_PER_CLASS,
+        )
+        print(f"\nWorking sample ({config.CORPUS_SAMPLE_FRACTION:.0%} of the usable corpus, "
+              f"floored at {config.MIN_SAMPLES_PER_CLASS} rows/category): "
+              f"{before:,} -> {len(df):,} rows, "
+              f"{before_classes} -> {df['REQUEST_CATEGORY'].nunique()} categories")
+        stats["sample_fraction"] = config.CORPUS_SAMPLE_FRACTION
+        stats["rows_before_sampling"] = before
+
     stats["rows_kept"] = len(df)
+    # Counted on what was actually kept, so the figure matches the corpus the
+    # rest of the pipeline sees rather than the pre-sampling one.
+    stats["rows_with_conclusion"] = int(df["CONCLUSION_MERGED"].notna().sum())
     stats["distinct_descriptions"] = int(df["DESCRIPTION"].nunique())
     stats["duplicate_description_pct"] = round(
         100 * (1 - df["DESCRIPTION"].nunique() / len(df)), 1

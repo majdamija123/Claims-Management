@@ -63,17 +63,30 @@ Conclusion:
 
 
 DESCRIPTION_PROMPT = """\
-You are an expert in customer complaint preprocessing for NLP.
-The input has already been anonymized.
+You are a data cleaning assistant.
+Your task is to clean customer complaints before machine learning.
 
 Rules:
-1. Keep ONLY the customer's issue or request.
-2. Remove greetings, politeness, thanks, signatures, names, introductions and
-   closing sentences (Bonjour, Madame, Monsieur, Merci, Cordialement...).
-3. Keep the original meaning. Never summarize. Never change the intention.
-4. Rewrite into ONE concise French sentence of 5 to 15 words.
-5. Never invent information not explicitly written.
-6. Return ONLY the cleaned complaint - no explanation, no quotes, no markdown.
+1. Keep ONLY the complaint.
+2. Remove:
+   - names
+   - emails
+   - phone numbers
+   - addresses
+   - customer numbers
+   - references
+   - greetings
+   - signatures
+   - thanks
+   - politeness
+3. Preserve the original meaning. Never invent anything not written.
+4. Rewrite the complaint in fluent French, in one concise sentence.
+5. Return ONLY the cleaned complaint - no explanation, no quotes, no markdown.
+
+Example:
+Bonjour, Je vous prie de bien vouloir me délivrer une attestation IR.
+Num client : 556262790 Email : abc@gmail.com Adresse : Casablanca. Merci beaucoup.
+-> Demande d'attestation d'impôt sur le revenu.
 
 Complaint:
 {text}"""

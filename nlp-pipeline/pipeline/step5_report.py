@@ -47,9 +47,23 @@ def main() -> None:
             ("− actes automatiques (attestations libre-service)",
              -step1["automated_acts_dropped"]),
             ("− descriptions trop courtes", -step1["short_descriptions_dropped"]),
+            ("− lignes sans catégorie ni niveau",
+             -step1.get("unlabelled_rows_dropped", 0)),
+        ]
+
+        # The quarter is drawn here, so the funnel has to show it: without this
+        # line the table stops adding up.
+        if "rows_before_sampling" in step1:
+            rows.append(("= Réclamations exploitables (corpus complet)",
+                         step1["rows_before_sampling"]))
+            rows.append((f"− échantillon de travail à "
+                         f"{step1['sample_fraction']:.0%}",
+                         -(step1["rows_before_sampling"] - step1["rows_kept"])))
+
+        rows += [
             ("− descriptions vidées par le nettoyage",
              -step2["emptied_descriptions_dropped"]),
-            ("= Réclamations exploitables", step2["rows_out"]),
+            ("= Corpus final", step2["rows_out"]),
         ]
         for label, value in rows:
             print(f"  {label:<52} {value:>+9,}" if value < 0

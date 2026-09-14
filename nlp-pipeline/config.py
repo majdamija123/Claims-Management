@@ -76,20 +76,29 @@ MIN_SAMPLES_PER_CLASS = 15
 # 20% sample keeps a full run to a manageable length without changing which
 # variant or which model wins.
 #
-# A plain 20% draw per class reliably pushes classes that only just cleared
-# MIN_SAMPLES_PER_CLASS back under it - on the pilot extract it took 20
-# classes down to 9. step4_train.stratified_subsample() therefore floors the
-# draw at MIN_SAMPLES_PER_CLASS rows per class: large classes still shrink to
-# their 20% share, small-but-viable ones keep enough rows to stay usable.
+# The diagnostic and the filtering funnel (step 0 and step 1) measure the WHOLE
+# export: the volumetry the report quotes - 510 108 rows, how many are
+# self-service acts, how many real complaints survive - is counted on all of it.
 #
-# Report wording: say "l'ensemble du corpus disponible a été nettoyé ; les
-# modèles ont été entraînés sur un échantillon stratifié de 20 % de ce corpus
-# (avec un plancher de 15 exemples par catégorie), afin de limiter le temps de
-# calcul sans faire disparaître les catégories rares de l'entraînement." Do
-# not describe this as "a quarter of the corpus" anywhere else in the report -
-# that referred to an earlier, smaller extract and would now contradict this
-# pipeline's actual behaviour.
-TRAIN_SAMPLE_FRACTION = 0.20
+# What follows the funnel is drawn down to a quarter. The binding cost is the
+# LLM pass: one local Qwen3 call per distinct description, on a corpus this size,
+# runs for days. A stratified quarter keeps every category represented and brings
+# a full run into the time actually available before the defence.
+#
+# The draw is stratified by category and floored at MIN_SAMPLES_PER_CLASS rows
+# per class: a plain per-class 25% draw pushes any class that only just cleared
+# the floor straight back under it - measured on the pilot extract, a flat draw
+# took REQUEST_CATEGORY from 20 classes down to 9.
+#
+# Report wording: "l'export complet a été diagnostiqué et filtré ; le nettoyage
+# sémantique et l'entraînement ont ensuite été menés sur un échantillon
+# stratifié de 25 % du corpus exploitable (avec un plancher de 15 exemples par
+# catégorie), contrainte de temps de calcul assumée."
+CORPUS_SAMPLE_FRACTION = 0.25
+
+# Step 4 trains on the whole sampled corpus: the quarter drawn above already is
+# the reduction, and cutting it twice would leave too little per class.
+TRAIN_SAMPLE_FRACTION = 1.0
 
 # --------------------------------------------------------------------------- targets
 #

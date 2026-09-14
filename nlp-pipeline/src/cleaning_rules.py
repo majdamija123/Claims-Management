@@ -122,34 +122,118 @@ def clean_conclusion(text) -> str | float:
 # ------------------------------------------------------------------ the input column
 
 
+# Contact details and identifiers: removed wherever they appear.
+_DESCRIPTION_PATTERNS: list[tuple[str, int]] = [
+    (r"\b[\w\.-]+@[\w\.-]+\.\w+\b", re.IGNORECASE),          # email addresses
+    (r"https?://\S+|www\.\S+", re.IGNORECASE),               # links
+    (r"(\+212|0)\s?\d(?:[\s.-]?\d){8,}", 0),                 # phone numbers
+    (r"\b(?:cnra|rcar)\d+\w*\b", re.IGNORECASE),             # web request references
+    (r"\b\d{6,}\b", 0),                                      # client / affiliation numbers
+]
+
+# Labels that open a contact block: whatever follows them, to the end of the
+# segment, is address or signature boilerplate rather than part of the request.
+_DESCRIPTION_BLOCK_LABELS = (
+    r"adresse|rue|quartier|appartement|appt|bloc|ville|code\s*postal|"
+    r"e-?mail|mail|courriel|t[ée]l[ée]phone|t[ée]l|fixe|gsm|mobile|portable|"
+    r"signature|envoy[ée]\s+de(?:puis)?|nb"
+)
+
+# Labels that appear mid-sentence, inside prose that must survive: "... au sujet
+# de Mme X, CIN : BK 348947 ayant le numéro 887261974 qui réclame ...". Only the
+# identifier itself is removed - tokens carrying a digit, or written in capitals
+# - never the words around it, which carry the request.
+_DESCRIPTION_INLINE_LABELS = (
+    r"n°|num[ée]ro|num|r[ée]f[ée]rence|r[ée]f|dossier|cin|client|affili[ée]|"
+    r"nom|pr[ée]nom"
+)
+
+# An identifier-shaped token: contains a digit, or is an all-caps code.
+_IDENTIFIER_TOKEN = r"(?:\S*\d\S*|[A-Z]{2,}[\w\-/]*)"
+
+# Greetings and sign-offs. The sign-offs also take everything after them: what
+# follows "Cordialement" is a signature block, never part of the request.
+_DESCRIPTION_GREETINGS = (
+    r"bonjour|bonsoir|salut|madame|monsieur|mesdames|messieurs|"
+    r"cher\s+client|ch[eè]re\s+cliente|cher|ch[eè]re"
+)
+
+_DESCRIPTION_SIGNOFFS = (
+    r"bien\s+cordialement|cordialement|sinc[eè]res\s+salutations?|"
+    r"(?:mes\s+)?salutations?\s+distingu[ée]es|mes\s+salutations?|"
+    r"veuillez\s+agr[ée]er|je\s+vous\s+prie\s+d['’]agr[ée]er|"
+    r"dans\s+l['’]attente\s+de\s+votre\s+r[ée]ponse|"
+    r"envoy[ée]\s+de(?:puis)?\s+mon|merci\s+d['’]avance|merci\s+beaucoup|"
+    r"avec\s+mes\s+remerciements"
+)
+
+
 def clean_description(text) -> str:
     """
-    Strip personal data and boilerplate from a complaint.
+    Strip personal data, contact blocks and politeness from a complaint.
 
-    Deliberately more conservative than the conclusion cleaner: the description is
-    the model's only evidence, so anything ambiguous is left in rather than risk
-    deleting the sentence that carries the customer's actual request.
+    What survives is meant to be the request and nothing else - the department's
+    own specification for this dataset. The aggressive parts are anchored on an
+    explicit label ("Adresse :", "Numéro client :") or on a sign-off, both of
+    which reliably introduce boilerplate rather than content; free prose is left
+    alone, because the description is the model's only evidence and a sentence
+    deleted here is a complaint the classifier can no longer read.
+
+    The LLM pass that follows handles what no pattern can: a name written on its
+    own line, a request buried in three paragraphs of courtesy.
     """
     if pd.isna(text):
         return ""
 
     text = str(text)
 
-    text = re.sub(r"\b[\w\.-]+@[\w\.-]+\.\w+\b", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"(\+212|0)\s?\d(?:[\s.-]?\d){8,}", " ", text)
-    text = re.sub(r"\b(?:cnra|rcar)\d+\w*\b", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"Num[ée]ro\s*client\s*:?\s*\d+", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"Affili[ée]\s*:?\s*\d+", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"(?:Fixe|Gsm)\s*:?.*", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"Adresse\s*:.*", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"E-?MAIL\s*:.*", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"NB\s*:.*?(?=Demande|Réclamation|$)", " ", text, flags=re.IGNORECASE)
+    # Labels run BEFORE the bare-identifier patterns below: "Num client :
+    # 556262790" has to be removed as one unit, because stripping the number
+    # first would leave the orphaned label behind with nothing to match.
+
+    # A contact-block label and everything after it, to the end of the segment.
+    text = re.sub(
+        # The value stops at a sentence break, but a dot inside a token (a
+        # domain name, an initial) belongs to the value and is consumed with it.
+        rf"\b(?:{_DESCRIPTION_BLOCK_LABELS})\s*:(?:[^\n.;]|\.(?!\s))*",
+        " ",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    # An inline label and the identifier it introduces - and nothing else.
+    text = re.sub(
+        # The label is matched case-insensitively; the identifier token is not,
+        # because recognising an all-caps code is the whole point of it.
+        rf"(?i:\b(?:{_DESCRIPTION_INLINE_LABELS})"
+        rf"(?:\s+(?:client|(?:d['’])?affiliation|de\s+dossier))?\s*:?\s*)"
+        rf"(?:{_IDENTIFIER_TOKEN}\s*){{1,4}}",
+        " ",
+        text,
+    )
+
+    # Bare identifiers, wherever they survived without a label in front.
+    for pattern, flags in _DESCRIPTION_PATTERNS:
+        text = re.sub(pattern, " ", text, flags=flags)
+
+    # Greetings, where they open the text or a sentence - repeated, since they
+    # come stacked ("Madame, Monsieur,"). Anchoring on the sentence start keeps
+    # a "monsieur" written about a third party inside the request.
+    text = re.sub(
+        rf"(?:^|(?<=[.;!?]))\s*(?:(?:{_DESCRIPTION_GREETINGS})\b[\s,.:;]*)+",
+        " ",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    # A sign-off and everything after it.
+    text = re.sub(rf"\b(?:{_DESCRIPTION_SIGNOFFS})\b.*", " ", text, flags=re.IGNORECASE | re.DOTALL)
+
     text = re.sub(r"\bnull\b", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"-{3,}", " ", text)
-    text = re.sub(r"_+", " ", text)
+    text = re.sub(r"[-_]{2,}", " ", text)
     text = re.sub(r"\s+", " ", text)
 
-    return text.strip()
+    return text.strip(" ,.;:-")
 
 
 def is_bad_target(text) -> bool:

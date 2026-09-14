@@ -36,6 +36,7 @@ import config
 from src import evaluation
 from src.features import build_model_text, encode
 from src.models import train_logreg, train_mlp
+from src.sampling import stratified_subsample
 
 
 def grouped_split(groups: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -53,31 +54,6 @@ def grouped_split(groups: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.nda
     )
     train_index, test_index = next(splitter.split(np.zeros(len(y)), y, groups))
     return train_index, test_index
-
-
-def stratified_subsample(
-    df: pd.DataFrame, target: str, fraction: float, seed: int, min_per_class: int
-) -> pd.DataFrame:
-    """
-    Take a fraction of the cleaned corpus, keeping each class's share intact
-    - with a floor, so a class that only just cleared MIN_SAMPLES_PER_CLASS
-    does not get sampled straight back under it.
-
-    A plain per-class `frac=fraction` draw is what "20% of the corpus" means,
-    but taken literally it reintroduces the problem the pre-filter just
-    solved: a class with exactly 15 rows keeps only 3 at 20%, well under the
-    floor that made it viable in the first place, and disappears from the
-    task entirely. Every class entering this function already has at least
-    `min_per_class` rows (the caller filtered smaller ones out), so flooring
-    the draw at that count - instead of at the fraction - keeps every
-    surviving class actually usable, while still shrinking every large class
-    down to its 20% share.
-    """
-    parts = []
-    for _, group in df.groupby(target):
-        keep = max(round(len(group) * fraction), min_per_class)
-        parts.append(group.sample(n=min(keep, len(group)), random_state=seed))
-    return pd.concat(parts).reset_index(drop=True)
 
 
 def run_task(df: pd.DataFrame, target: str, target_label: str) -> list[dict]:
