@@ -76,12 +76,19 @@ MIN_SAMPLES_PER_CLASS = 15
 # 20% sample keeps a full run to a manageable length without changing which
 # variant or which model wins.
 #
+# A plain 20% draw per class reliably pushes classes that only just cleared
+# MIN_SAMPLES_PER_CLASS back under it - on the pilot extract it took 20
+# classes down to 9. step4_train.stratified_subsample() therefore floors the
+# draw at MIN_SAMPLES_PER_CLASS rows per class: large classes still shrink to
+# their 20% share, small-but-viable ones keep enough rows to stay usable.
+#
 # Report wording: say "l'ensemble du corpus disponible a été nettoyé ; les
-# modèles ont été entraînés sur un échantillon stratifié de 20 % de ce corpus,
-# afin de limiter le temps de calcul sans affecter la comparaison entre les
-# variantes de nettoyage." Do not describe this as "a quarter of the corpus"
-# anywhere else in the report - that referred to an earlier, smaller extract
-# and would now contradict this pipeline's actual behaviour.
+# modèles ont été entraînés sur un échantillon stratifié de 20 % de ce corpus
+# (avec un plancher de 15 exemples par catégorie), afin de limiter le temps de
+# calcul sans faire disparaître les catégories rares de l'entraînement." Do
+# not describe this as "a quarter of the corpus" anywhere else in the report -
+# that referred to an earlier, smaller extract and would now contradict this
+# pipeline's actual behaviour.
 TRAIN_SAMPLE_FRACTION = 0.20
 
 # --------------------------------------------------------------------------- targets

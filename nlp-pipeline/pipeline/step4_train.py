@@ -55,20 +55,28 @@ def grouped_split(groups: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.nda
     return train_index, test_index
 
 
-def stratified_subsample(df: pd.DataFrame, target: str, fraction: float, seed: int) -> pd.DataFrame:
+def stratified_subsample(
+    df: pd.DataFrame, target: str, fraction: float, seed: int, min_per_class: int
+) -> pd.DataFrame:
     """
-    Take a fraction of the cleaned corpus, keeping each class's share intact.
+    Take a fraction of the cleaned corpus, keeping each class's share intact
+    - with a floor, so a class that only just cleared MIN_SAMPLES_PER_CLASS
+    does not get sampled straight back under it.
 
-    A plain df.sample(frac=...) would do the same in expectation, but stratifying
-    explicitly guarantees a class present a hundred times stays present after
-    sampling in roughly the same proportion, rather than occasionally vanishing
-    on an unlucky draw - which matters here with several classes near the
-    MIN_SAMPLES_PER_CLASS floor.
+    A plain per-class `frac=fraction` draw is what "20% of the corpus" means,
+    but taken literally it reintroduces the problem the pre-filter just
+    solved: a class with exactly 15 rows keeps only 3 at 20%, well under the
+    floor that made it viable in the first place, and disappears from the
+    task entirely. Every class entering this function already has at least
+    `min_per_class` rows (the caller filtered smaller ones out), so flooring
+    the draw at that count - instead of at the fraction - keeps every
+    surviving class actually usable, while still shrinking every large class
+    down to its 20% share.
     """
-    parts = [
-        group.sample(frac=fraction, random_state=seed)
-        for _, group in df.groupby(target)
-    ]
+    parts = []
+    for _, group in df.groupby(target):
+        keep = max(round(len(group) * fraction), min_per_class)
+        parts.append(group.sample(n=min(keep, len(group)), random_state=seed))
     return pd.concat(parts).reset_index(drop=True)
 
 
@@ -94,16 +102,15 @@ def run_task(df: pd.DataFrame, target: str, target_label: str) -> list[dict]:
 
     if config.TRAIN_SAMPLE_FRACTION < 1.0:
         before = len(task_df)
+        before_classes = task_df[target].nunique()
         task_df = stratified_subsample(
-            task_df, target, config.TRAIN_SAMPLE_FRACTION, config.RANDOM_SEED
+            task_df, target, config.TRAIN_SAMPLE_FRACTION, config.RANDOM_SEED,
+            config.MIN_SAMPLES_PER_CLASS,
         )
-        # A class can still fall under the floor after a 20% draw of a class that
-        # sat right at MIN_SAMPLES_PER_CLASS. Re-checked rather than assumed.
-        counts = task_df[target].value_counts()
-        keepable = counts[counts >= config.MIN_SAMPLES_PER_CLASS].index
-        task_df = task_df[task_df[target].isin(keepable)].reset_index(drop=True)
-        print(f"Training sample ({config.TRAIN_SAMPLE_FRACTION:.0%} of the cleaned corpus): "
-              f"{before:,} -> {len(task_df):,} rows, {len(keepable)} classes")
+        print(f"Training sample ({config.TRAIN_SAMPLE_FRACTION:.0%} of the cleaned corpus, "
+              f"floored at {config.MIN_SAMPLES_PER_CLASS} rows/class): "
+              f"{before:,} -> {len(task_df):,} rows, "
+              f"{before_classes} -> {task_df[target].nunique()} classes")
 
     encoder = LabelEncoder()
     y = encoder.fit_transform(task_df[target])

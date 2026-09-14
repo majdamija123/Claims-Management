@@ -87,7 +87,7 @@ def main() -> None:
     # --- markup -------------------------------------------------------------
     # Descriptions arrive as HTML fragments: <br>, <hr>, and the literal string
     # "null" where the source system had nothing to write.
-    for column in df.select_dtypes(include="object").columns:
+    for column in df.select_dtypes(include=["object", "str"]).columns:
         df[column] = df[column].apply(rules.strip_markup)
 
     # --- rows that are not complaints ---------------------------------------
