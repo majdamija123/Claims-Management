@@ -11,11 +11,18 @@ as it should.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import matplotlib
 
-matplotlib.use("Agg")
+# Agg lets the pipeline scripts write figures with no display attached, which is
+# what they need. Claimed only when nothing else has already chosen a backend:
+# a notebook selects its own with %matplotlib inline, and overriding that here -
+# this module is imported indirectly by every pipeline step - would silently
+# stop every figure in the notebook from rendering.
+if "matplotlib.pyplot" not in sys.modules:
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import (

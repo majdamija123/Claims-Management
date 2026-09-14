@@ -80,21 +80,24 @@ MIN_SAMPLES_PER_CLASS = 15
 # export: the volumetry the report quotes - 510 108 rows, how many are
 # self-service acts, how many real complaints survive - is counted on all of it.
 #
-# What follows the funnel is drawn down to a quarter. The binding cost is the
+# What follows the funnel is drawn down to a tenth. The binding cost is the
 # LLM pass: one local Qwen3 call per distinct description, on a corpus this size,
-# runs for days. A stratified quarter keeps every category represented and brings
+# runs for days. A stratified tenth keeps every category represented and brings
 # a full run into the time actually available before the defence.
 #
 # The draw is stratified by category and floored at MIN_SAMPLES_PER_CLASS rows
-# per class: a plain per-class 25% draw pushes any class that only just cleared
+# per class: a plain per-class 10% draw pushes any class that only just cleared
 # the floor straight back under it - measured on the pilot extract, a flat draw
-# took REQUEST_CATEGORY from 20 classes down to 9.
+# took REQUEST_CATEGORY from 20 classes down to 9. With the floor, the smaller
+# categories keep their 15 rows, so the sample ends up slightly above 10% of the
+# corpus overall - step 1 prints the figure actually obtained, and that is the
+# one to quote.
 #
 # Report wording: "l'export complet a été diagnostiqué et filtré ; le nettoyage
 # sémantique et l'entraînement ont ensuite été menés sur un échantillon
-# stratifié de 25 % du corpus exploitable (avec un plancher de 15 exemples par
+# stratifié de 10 % du corpus exploitable (avec un plancher de 15 exemples par
 # catégorie), contrainte de temps de calcul assumée."
-CORPUS_SAMPLE_FRACTION = 0.25
+CORPUS_SAMPLE_FRACTION = 0.10
 
 # Step 4 trains on the whole sampled corpus: the quarter drawn above already is
 # the reduction, and cutting it twice would leave too little per class.
