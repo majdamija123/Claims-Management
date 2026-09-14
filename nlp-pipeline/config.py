@@ -138,7 +138,17 @@ LLM_DISABLE_THINKING = True
 
 # Descriptions are deduplicated before being sent, so this caps distinct texts,
 # not rows. None cleans every distinct description.
-LLM_DESCRIPTION_LIMIT = None
+#
+# Deliberately small: a first run on this machine is a timed measurement, not
+# the real pass. At 50 calls the progress bar shows a reliable rate in a minute
+# or two, and that rate is what says whether the full corpus - on the order of
+# ten thousand distinct texts - takes three hours or thirty.
+#
+# Raise it once measured. It does not have to reach the whole corpus: rows past
+# the cap keep their rule-cleaned text and the pipeline still runs end to end,
+# so a partial semantic pass is a legitimate result to present, as long as the
+# report says so.
+LLM_DESCRIPTION_LIMIT = 50
 
 # --------------------------------------------------------------------------- features
 
