@@ -1,4 +1,6 @@
-data/*.parquet
+# Customer data never goes to the repository: this export carries names, phone
+# numbers, email addresses and dates of birth of real CDG customers.
+data/
 outputs/
 .cache/
 .venv/

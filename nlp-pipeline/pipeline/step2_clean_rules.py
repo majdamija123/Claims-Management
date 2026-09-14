@@ -1,8 +1,16 @@
 """
 Step 2 - rule-based cleaning.
 
-Cheap, deterministic, and it removes most of the noise. Everything it leaves behind
-is a wording problem, which is what step 3 is for.
+Cheap, deterministic, and it removes most of the noise. What it cannot do is
+normalise wording, which is what step 3 is for.
+
+Two columns are cleaned, for two different reasons:
+
+  DESCRIPTION  the model's input. Cleaned conservatively - anything ambiguous is
+               left in rather than risk deleting the sentence that carries the
+               request.
+  CONCLUSION   not a target here (too sparse in this export), but the column the
+               LLM normalisation is demonstrated on, so it is cleaned too.
 """
 
 from __future__ import annotations
@@ -21,43 +29,38 @@ from src.evaluation import save_json
 
 def main() -> None:
     df = pd.read_parquet(config.PREPARED_PARQUET)
-    print(f"Loaded {len(df):,} rows")
+    print(f"Loaded {len(df):,} complaints")
 
     df["DESCRIPTION_RULES"] = df["DESCRIPTION"].apply(rules.clean_description)
     df["CONCLUSION_RULES"] = df["CONCLUSION_MERGED"].apply(rules.clean_conclusion)
 
-    # Conclusions that are administrative notes rather than outcomes.
-    bad = df["CONCLUSION_RULES"].apply(rules.is_bad_target)
-    print(f"Non-outcome conclusions dropped: {int(bad.sum()):,}")
-    df = df[~bad].copy()
-
-    # A complaint the cleaner emptied has nothing left to learn from.
-    empty = df["DESCRIPTION_RULES"].str.strip() == ""
-    print(f"Descriptions emptied by cleaning, dropped: {int(empty.sum()):,}")
-    df = df[~empty].copy()
-
-    df = df[df["CONCLUSION_RULES"].notna()].reset_index(drop=True)
+    # A description the cleaner emptied held nothing but contact details.
+    emptied = df["DESCRIPTION_RULES"].str.len() < config.MIN_DESCRIPTION_CHARS
+    print(f"Descriptions left empty by cleaning, dropped: {int(emptied.sum()):,}")
+    df = df[~emptied].reset_index(drop=True)
 
     stats = {
-        "rows_in": int(len(df) + bad.sum() + empty.sum()),
-        "non_outcome_dropped": int(bad.sum()),
-        "emptied_descriptions_dropped": int(empty.sum()),
+        "rows_in": int(len(df) + emptied.sum()),
+        "emptied_descriptions_dropped": int(emptied.sum()),
         "rows_out": int(len(df)),
-        "distinct_conclusions_raw": int(df["CONCLUSION_MERGED"].nunique()),
-        "distinct_conclusions_after_rules": int(df["CONCLUSION_RULES"].nunique()),
         "mean_description_chars_before": round(float(df["DESCRIPTION"].str.len().mean()), 1),
         "mean_description_chars_after": round(
             float(df["DESCRIPTION_RULES"].str.len().mean()), 1
         ),
+        "distinct_descriptions_before": int(df["DESCRIPTION"].nunique()),
+        "distinct_descriptions_after": int(df["DESCRIPTION_RULES"].nunique()),
+        "conclusions_present": int(df["CONCLUSION_RULES"].notna().sum()),
+        "distinct_conclusions_after_rules": int(df["CONCLUSION_RULES"].nunique()),
     }
 
     df.to_parquet(config.RULES_PARQUET, index=False)
     save_json(stats, config.METRICS / "step2_rules.json")
 
-    print(f"\nDistinct conclusions: {stats['distinct_conclusions_raw']:,}"
-          f" -> {stats['distinct_conclusions_after_rules']:,} after rules")
-    print(f"Average description length: {stats['mean_description_chars_before']:.0f}"
+    print(f"\nAverage description: {stats['mean_description_chars_before']:.0f}"
           f" -> {stats['mean_description_chars_after']:.0f} characters")
+    print(f"Distinct descriptions: {stats['distinct_descriptions_before']:,}"
+          f" -> {stats['distinct_descriptions_after']:,}"
+          f"  (cleaning merged near-identical texts)")
     print(f"Written to {config.RULES_PARQUET}")
 
 

@@ -27,101 +27,136 @@ def load(name: str) -> dict | list | None:
 
 
 def section(title: str) -> None:
-    print(f"\n{'=' * 70}\n{title}\n{'=' * 70}")
+    print(f"\n{'=' * 72}\n{title}\n{'=' * 72}")
 
 
 def main() -> None:
-    section("TABLEAU 1 — Réduction du corpus")
-
     step1 = load("step1_prepare.json")
     step2 = load("step2_rules.json")
-
-    if step1 and step2:
-        rows = [
-            ("Export brut", step1["rows_raw"]),
-            ("Après retrait des pièces jointes corrompues",
-             step1["rows_raw"] - step1["office_artefacts_dropped"]),
-            ("Après retrait des lignes sans conclusion",
-             step1["rows_raw"] - step1["office_artefacts_dropped"]
-             - step1["rows_without_conclusion_dropped"]),
-            (f"Échantillon retenu ({step1['sample_fraction']:.0%})", step1["rows_sampled"]),
-            ("Après nettoyage par règles", step2["rows_out"]),
-        ]
-        for label, value in rows:
-            print(f"  {label:<50} {value:>10,}")
-
-    section("TABLEAU 2 — Effet du nettoyage sur la colonne cible")
-
     step3 = load("step3_llm.json")
 
-    if step2 and step3:
-        consolidation = step3["consolidation"]
-        print(f"  {'Conclusions distinctes (brut)':<50} {step2['distinct_conclusions_raw']:>10,}")
-        print(f"  {'Après nettoyage par règles':<50} "
-              f"{step2['distinct_conclusions_after_rules']:>10,}")
-        print(f"  {'Après normalisation sémantique (LLM)':<50} "
-              f"{consolidation['distinct_after']:>10,}")
-        print(f"\n  Classes fusionnées par le LLM : {consolidation['reduction_pct']}%")
+    section("TABLEAU 1 — Du fichier source au corpus exploitable")
 
-        conclusion_pass = step3["conclusion_pass"]
-        print(f"\n  Appels LLM nécessaires        : {conclusion_pass['llm_calls']:,}")
-        print(f"  Appels évités par déduplication : "
-              f"{conclusion_pass['calls_saved_by_dedup']:,}")
+    if step1 and step2:
+        total = step1["rows_raw"]
+        rows = [
+            ("Export Excel brut", total),
+            ("− pièces jointes corrompues", -step1["office_artefacts_dropped"]),
+            ("− actes automatiques (attestations libre-service)",
+             -step1["automated_acts_dropped"]),
+            ("− descriptions trop courtes", -step1["short_descriptions_dropped"]),
+            ("− descriptions vidées par le nettoyage",
+             -step2["emptied_descriptions_dropped"]),
+            ("= Réclamations exploitables", step2["rows_out"]),
+        ]
+        for label, value in rows:
+            print(f"  {label:<52} {value:>+9,}" if value < 0
+                  else f"  {label:<52} {value:>10,}")
 
-        total = conclusion_pass["llm_calls"] + conclusion_pass["calls_saved_by_dedup"]
-        if total:
-            print(f"  Réduction du coût de traitement : "
-                  f"{100 * conclusion_pass['calls_saved_by_dedup'] / total:.0f}%")
+        print(f"\n  Soit {100 * step2['rows_out'] / total:.1f}% de l'export d'origine.")
+        print(f"  Catégories distinctes : {step1['classes_request_category']}"
+              f"   Niveaux de traitement : {step1['classes_routing_level']}")
 
-    section("TABLEAU 3 — Comparaison des modèles (étude d'ablation)")
+    section("TABLEAU 2 — Effet du nettoyage sur le texte")
+
+    if step2:
+        print(f"  {'Longueur moyenne avant nettoyage':<52} "
+              f"{step2['mean_description_chars_before']:>9.0f} car.")
+        print(f"  {'Longueur moyenne après nettoyage':<52} "
+              f"{step2['mean_description_chars_after']:>9.0f} car.")
+        reduction = 100 * (
+            1 - step2["mean_description_chars_after"] / step2["mean_description_chars_before"]
+        )
+        print(f"  {'Réduction':<52} {reduction:>9.1f} %")
+        print(f"\n  {'Descriptions distinctes avant':<52} "
+              f"{step2['distinct_descriptions_before']:>10,}")
+        print(f"  {'Descriptions distinctes après':<52} "
+              f"{step2['distinct_descriptions_after']:>10,}")
+
+    section("TABLEAU 3 — Coût du nettoyage sémantique (déduplication)")
+
+    if step3:
+        for pass_name, pass_stats in (
+            ("Conclusions", step3["conclusion_pass"]),
+            ("Descriptions", step3["description_pass"]),
+        ):
+            print(f"\n  {pass_name}")
+            print(f"    {'Lignes à traiter':<46} {pass_stats['rows']:>10,}")
+            print(f"    {'Valeurs distinctes (= appels nécessaires)':<46} "
+                  f"{pass_stats['unique_values']:>10,}")
+            print(f"    {'Appels évités par déduplication':<46} "
+                  f"{pass_stats['calls_saved_by_dedup']:>10,}")
+
+            # Measured against the naive approach - one call per row - not against
+            # the calls this particular run happened to make.
+            if pass_stats["rows"]:
+                saved = 100 * pass_stats["calls_saved_by_dedup"] / pass_stats["rows"]
+                print(f"    {'Réduction du coût de traitement':<46} {saved:>9.0f} %")
+
+            if pass_stats.get("aborted"):
+                print("    (passe interrompue : Ollama indisponible lors de ce run)")
+
+        consolidation = step3.get("consolidation")
+        if consolidation and consolidation["distinct_before"]:
+            print(f"\n  Normalisation des conclusions : "
+                  f"{consolidation['distinct_before']:,} formulations distinctes -> "
+                  f"{consolidation['distinct_after']:,} "
+                  f"({consolidation['reduction_pct']}% fusionnées)")
+
+    section("TABLEAU 4 — Comparaison des modèles (étude d'ablation)")
 
     ablation = load("step4_ablation.json")
 
     if ablation:
-        table = pd.DataFrame(ablation)
-        table = table.rename(
+        table = pd.DataFrame(ablation).rename(
             columns={
-                "variant": "Variante",
-                "model": "Modèle",
-                "accuracy": "Accuracy",
-                "f1_macro": "F1 macro",
+                "target": "Cible", "variant": "Variante", "model": "Modèle",
+                "accuracy": "Accuracy", "f1_macro": "F1 macro",
                 "f1_weighted": "F1 pondéré",
             }
         )
-        print(table.to_string(index=False))
+        for target in table["Cible"].unique():
+            print(f"\n  --- {config.TARGETS.get(target, target)} ---")
+            print(table[table["Cible"] == target].drop(columns="Cible").to_string(index=False))
 
         csv_path = config.METRICS / "tableau_comparaison.csv"
         table.to_csv(csv_path, index=False, encoding="utf-8-sig")
         print(f"\n  CSV pour Word : {csv_path}")
 
-        # What each stage bought, in F1 points - the sentence the report needs.
-        best_per_variant = (
-            table.groupby("Variante")["F1 macro"].max().to_dict()
-        )
-        if "raw" in best_per_variant and "rules" in best_per_variant:
-            gain = best_per_variant["rules"] - best_per_variant["raw"]
-            print(f"\n  Apport du nettoyage par règles : {gain:+.3f} F1 macro")
-        if "rules" in best_per_variant and "rules+llm" in best_per_variant:
-            gain = best_per_variant["rules+llm"] - best_per_variant["rules"]
-            print(f"  Apport du nettoyage sémantique : {gain:+.3f} F1 macro")
+        print("\n  Apport de chaque étape (meilleur modèle, en F1 macro) :")
+        for target in table["Cible"].unique():
+            best_per_variant = (
+                table[table["Cible"] == target].groupby("Variante")["F1 macro"].max().to_dict()
+            )
+            print(f"\n    {config.TARGETS.get(target, target)}")
+            if "raw" in best_per_variant and "rules" in best_per_variant:
+                print(f"      nettoyage par règles  : "
+                      f"{best_per_variant['rules'] - best_per_variant['raw']:+.3f}")
+            if "rules" in best_per_variant and "rules+llm" in best_per_variant:
+                print(f"      nettoyage sémantique  : "
+                      f"{best_per_variant['rules+llm'] - best_per_variant['rules']:+.3f}")
 
-    section("ANALYSE DES ERREURS — confusions les plus fréquentes")
+    section("ANALYSE DES ERREURS")
 
-    best = load("step4_best.json")
+    for target in config.TARGETS:
+        best = load(f"step4_best_{target}.json")
+        if not best:
+            continue
 
-    if best:
+        print(f"\n  --- {best['target_label']} ---")
         print(f"  Modèle retenu : {best['best']['model']} "
               f"sur la variante « {best['best']['variant']} »")
-        print(f"  Classes : {best['classes']:,}   Lignes : {best['rows']:,}\n")
+        print(f"  {best['classes']} classes, {best['rows']:,} lignes, "
+              f"F1 macro {best['best']['f1_macro']}\n")
 
-        for confusion in best["top_confusions"]:
-            print(f"  {confusion['count']:>4}x  « {confusion['true'][:38]:<38} »"
-                  f"  ->  « {confusion['predicted'][:38]} »")
+        for confusion in best["top_confusions"][:6]:
+            print(f"    {confusion['count']:>4}x  « {confusion['true'][:34]:<34} »"
+                  f"  ->  « {confusion['predicted'][:34]} »")
 
     section("FIGURES DISPONIBLES")
 
     for figure in sorted(config.FIGURES.glob("*.png")):
-        print(f"  {figure}")
+        print(f"  {figure.name}")
 
 
 if __name__ == "__main__":
