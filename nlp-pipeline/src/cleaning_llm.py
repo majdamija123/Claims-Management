@@ -144,10 +144,19 @@ class LlmCleaner:
     # ------------------------------------------------------------------ public
 
     def clean_series(
-        self, series: pd.Series, prompt_template: str, label: str
+        self,
+        series: pd.Series,
+        prompt_template: str,
+        label: str,
+        max_calls: int | None = None,
     ) -> tuple[pd.Series, dict]:
         """
         Clean every value of a column, calling the model once per distinct value.
+
+        `max_calls` bounds how many distinct values are actually sent. Capping
+        calls rather than rows is what keeps a run predictable: the cost is one
+        call per distinct value, so a row cap says little about the runtime.
+        Values past the cap are left untouched and keep their incoming text.
 
         Returns the cleaned column and the statistics the report quotes: how many
         rows, how many distinct values, how many calls were actually needed.
@@ -158,6 +167,15 @@ class LlmCleaner:
         unique_values = present.unique().tolist()
         to_call = [value for value in unique_values if value not in self.cache]
 
+        skipped = 0
+        if max_calls is not None and len(to_call) > max_calls:
+            skipped = len(to_call) - max_calls
+            to_call = to_call[:max_calls]
+            print(
+                f"{label}: {len(unique_values):,} valeurs distinctes, "
+                f"limitées à {max_calls:,} appels ({skipped:,} gardent leur texte)."
+            )
+
         stats = {
             "column": label,
             "rows": int(len(present)),
@@ -165,6 +183,7 @@ class LlmCleaner:
             "already_cached": int(len(unique_values) - len(to_call)),
             "llm_calls": int(len(to_call)),
             "calls_saved_by_dedup": int(len(present) - len(unique_values)),
+            "skipped_over_limit": int(skipped),
         }
 
         consecutive_failures = 0

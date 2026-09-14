@@ -45,7 +45,8 @@ def main() -> None:
 
     # ---------------------------------------------------------------- target
     df["CONCLUSION_LLM"], conclusion_stats = cleaner.clean_series(
-        df["CONCLUSION_RULES"], CONCLUSION_PROMPT, "CONCLUSION"
+        df["CONCLUSION_RULES"], CONCLUSION_PROMPT, "CONCLUSION",
+        max_calls=config.LLM_CONCLUSION_LIMIT,
     )
 
     consolidation = consolidation_ratio(df["CONCLUSION_RULES"], df["CONCLUSION_LLM"])
@@ -60,20 +61,16 @@ def main() -> None:
     # Descriptions are nearly all unique, so there is no deduplication windfall
     # here - the cost is one call per row. The cap keeps a demonstration run to
     # minutes; rows beyond it keep their rule-cleaned text, which is still usable.
-    subset = df
-    if config.LLM_DESCRIPTION_LIMIT:
-        subset = df.head(config.LLM_DESCRIPTION_LIMIT)
-        print(
-            f"\nCleaning the first {len(subset):,} descriptions"
-            f" (LLM_DESCRIPTION_LIMIT); the rest keep their rule-cleaned text."
-        )
-
+    # Capped by distinct values rather than by rows: the cost is one call per
+    # distinct text, so a row cap does not bound the runtime, and cleaning the
+    # first N *values* reaches every row that repeats them instead of only the
+    # top of the table.
     cleaned_descriptions, description_stats = cleaner.clean_series(
-        subset["DESCRIPTION_RULES"], DESCRIPTION_PROMPT, "DESCRIPTION"
+        df["DESCRIPTION_RULES"], DESCRIPTION_PROMPT, "DESCRIPTION",
+        max_calls=config.LLM_DESCRIPTION_LIMIT,
     )
 
-    df["DESCRIPTION_LLM"] = df["DESCRIPTION_RULES"]
-    df.loc[cleaned_descriptions.index, "DESCRIPTION_LLM"] = cleaned_descriptions
+    df["DESCRIPTION_LLM"] = cleaned_descriptions
 
     # A model that answered with an empty string would silently delete a complaint.
     fallback = df["DESCRIPTION_LLM"].fillna("").str.strip() == ""
@@ -83,8 +80,12 @@ def main() -> None:
         "conclusion_pass": conclusion_stats,
         "description_pass": description_stats,
         "consolidation": consolidation,
-        "descriptions_llm_cleaned": int(len(subset)),
-        "descriptions_kept_rule_cleaned": int(len(df) - len(subset)),
+        "descriptions_rewritten_by_llm": int(
+            (df["DESCRIPTION_LLM"] != df["DESCRIPTION_RULES"]).sum()
+        ),
+        "descriptions_kept_rule_cleaned": int(
+            (df["DESCRIPTION_LLM"] == df["DESCRIPTION_RULES"]).sum()
+        ),
         "empty_llm_answers_fallen_back": int(fallback.sum()),
     }
 

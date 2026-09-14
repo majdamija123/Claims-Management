@@ -136,6 +136,19 @@ LLM_TEMPERATURE = 0.0
 # to compare answer quality with reasoning on.
 LLM_DISABLE_THINKING = True
 
+# The conclusion pass needs its own cap, and it is the one that bites: the
+# column holds about two thousand distinct values on a tenth of the corpus, and
+# nothing bounded it - so a run configured for "50 descriptions" still opened
+# with two thousand conclusion calls before reaching them.
+#
+# It also has the weakest claim on the time. The conclusion is no longer a
+# classification target (too sparse to be one); what it is still used for is
+# the normalisation figure in the report - several spellings of one outcome
+# merged into a single class. A few hundred distinct values demonstrate that
+# just as well as two thousand. Values past the cap keep their rule-cleaned
+# text.
+LLM_CONCLUSION_LIMIT = 150
+
 # Descriptions are deduplicated before being sent, so this caps distinct texts,
 # not rows. None cleans every distinct description.
 #
