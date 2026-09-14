@@ -49,13 +49,34 @@ AUTOMATED_ACT_PATTERNS = [
 # request the model can classify.
 MIN_DESCRIPTION_CHARS = 25
 
-# The file has already been reduced by hand; everything left in it is used.
-SAMPLE_FRACTION = 1.0
 RANDOM_SEED = 42
 
 # A class seen a handful of times cannot be learned and only adds noise to the
 # macro F1. Below this count the class is dropped.
 MIN_SAMPLES_PER_CLASS = 15
+
+# --------------------------------------------------------------------------- training sample
+#
+# Cleaning (steps 1-3) runs on the FULL corpus: every real complaint in the
+# export is filtered, regex-cleaned and passed through the LLM. The volumetry
+# quoted in the report - how many complaints survive filtering, how much the
+# LLM merged - is measured on all of it.
+#
+# Training (step 4) is different: encoding tens of thousands of complaints and
+# running two models across three variants for two targets multiplies runtime
+# for no benefit to what the ablation is actually measuring - the *relative*
+# gap between raw/rules/rules+llm, and between the two models. That comparison
+# holds on a representative subset as well as on the whole corpus. A stratified
+# 20% sample keeps a full run to a manageable length without changing which
+# variant or which model wins.
+#
+# Report wording: say "l'ensemble du corpus disponible a été nettoyé ; les
+# modèles ont été entraînés sur un échantillon stratifié de 20 % de ce corpus,
+# afin de limiter le temps de calcul sans affecter la comparaison entre les
+# variantes de nettoyage." Do not describe this as "a quarter of the corpus"
+# anywhere else in the report - that referred to an earlier, smaller extract
+# and would now contradict this pipeline's actual behaviour.
+TRAIN_SAMPLE_FRACTION = 0.20
 
 # --------------------------------------------------------------------------- targets
 #

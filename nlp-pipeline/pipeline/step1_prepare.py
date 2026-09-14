@@ -48,23 +48,25 @@ ROUTING_LEVELS = {1: "FRONT_OFFICE", 2: "MIDDLE_OFFICE", 3: "BACK_OFFICE"}
 
 
 def load_export() -> pd.DataFrame:
-    """Read the workbook once, then work from the parquet copy."""
-    if config.RAW_PARQUET.exists():
-        print(f"Reading {config.RAW_PARQUET.name}")
-        return pd.read_parquet(config.RAW_PARQUET)
-
-    if not config.RAW_EXCEL.exists():
-        raise SystemExit(
-            f"Neither {config.RAW_PARQUET.name} nor {config.RAW_EXCEL.name} found in "
-            f"{config.DATA}.\nPut the export there, or generate a synthetic stand-in "
-            f"with\n  python tools/make_demo_data.py"
+    """Read from the parquet copy, converting the .xls first if needed."""
+    if not config.RAW_PARQUET.exists():
+        if not config.RAW_EXCEL.exists():
+            raise SystemExit(
+                f"Neither {config.RAW_PARQUET.name} nor {config.RAW_EXCEL.name} found in "
+                f"{config.DATA}.\nPut the export there, or generate a synthetic stand-in "
+                f"with\n  python tools/make_demo_data.py"
+            )
+        print(f"{config.RAW_PARQUET.name} not found — converting the .xls first.\n"
+              f"(On the full export this can take several minutes; see\n"
+              f" tools/convert_xls_to_parquet.py if you want to run that step alone.)\n")
+        import subprocess
+        subprocess.run(
+            [sys.executable, str(Path(__file__).parent.parent / "tools" / "convert_xls_to_parquet.py")],
+            check=True,
         )
 
-    print(f"Reading {config.RAW_EXCEL.name} (slow - converting to parquet once)")
-    df = pd.read_excel(config.RAW_EXCEL)
-    df.to_parquet(config.RAW_PARQUET, index=False)
-    print(f"  saved as {config.RAW_PARQUET.name}; later runs load that instead")
-    return df
+    print(f"Reading {config.RAW_PARQUET.name}")
+    return pd.read_parquet(config.RAW_PARQUET)
 
 
 def main() -> None:

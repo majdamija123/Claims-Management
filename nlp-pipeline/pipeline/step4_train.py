@@ -55,6 +55,23 @@ def grouped_split(groups: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.nda
     return train_index, test_index
 
 
+def stratified_subsample(df: pd.DataFrame, target: str, fraction: float, seed: int) -> pd.DataFrame:
+    """
+    Take a fraction of the cleaned corpus, keeping each class's share intact.
+
+    A plain df.sample(frac=...) would do the same in expectation, but stratifying
+    explicitly guarantees a class present a hundred times stays present after
+    sampling in roughly the same proportion, rather than occasionally vanishing
+    on an unlucky draw - which matters here with several classes near the
+    MIN_SAMPLES_PER_CLASS floor.
+    """
+    parts = [
+        group.sample(frac=fraction, random_state=seed)
+        for _, group in df.groupby(target)
+    ]
+    return pd.concat(parts).reset_index(drop=True)
+
+
 def run_task(df: pd.DataFrame, target: str, target_label: str) -> list[dict]:
     print(f"\n{'#' * 70}\n# TASK: {target}  —  {target_label}\n{'#' * 70}")
 
@@ -62,13 +79,31 @@ def run_task(df: pd.DataFrame, target: str, target_label: str) -> list[dict]:
     task_df[target] = task_df[target].astype(str).str.strip()
     task_df = task_df[task_df[target] != ""]
 
+    # Class filtering happens BEFORE subsampling, on the full cleaned corpus:
+    # filtering after would let the 20% draw itself starve a borderline class
+    # below the floor by chance, making the sample size change which classes
+    # exist rather than just how many examples of each are used.
     counts = task_df[target].value_counts()
     keepable = counts[counts >= config.MIN_SAMPLES_PER_CLASS].index
     dropped = int((~task_df[target].isin(keepable)).sum())
     task_df = task_df[task_df[target].isin(keepable)].reset_index(drop=True)
 
-    print(f"Rows: {len(task_df):,}   Classes kept: {len(keepable)} "
+    print(f"Full cleaned corpus for this task: {len(task_df):,} rows, "
+          f"{len(keepable)} classes "
           f"(dropped {dropped:,} rows in classes under {config.MIN_SAMPLES_PER_CLASS})")
+
+    if config.TRAIN_SAMPLE_FRACTION < 1.0:
+        before = len(task_df)
+        task_df = stratified_subsample(
+            task_df, target, config.TRAIN_SAMPLE_FRACTION, config.RANDOM_SEED
+        )
+        # A class can still fall under the floor after a 20% draw of a class that
+        # sat right at MIN_SAMPLES_PER_CLASS. Re-checked rather than assumed.
+        counts = task_df[target].value_counts()
+        keepable = counts[counts >= config.MIN_SAMPLES_PER_CLASS].index
+        task_df = task_df[task_df[target].isin(keepable)].reset_index(drop=True)
+        print(f"Training sample ({config.TRAIN_SAMPLE_FRACTION:.0%} of the cleaned corpus): "
+              f"{before:,} -> {len(task_df):,} rows, {len(keepable)} classes")
 
     encoder = LabelEncoder()
     y = encoder.fit_transform(task_df[target])
