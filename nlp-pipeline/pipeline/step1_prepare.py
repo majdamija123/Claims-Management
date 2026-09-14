@@ -187,6 +187,14 @@ def main() -> None:
         stats["sample_fraction"] = config.CORPUS_SAMPLE_FRACTION
         stats["rows_before_sampling"] = before
 
+    # --- demo cap ------------------------------------------------------------
+    if config.DEMO_ROWS and len(df) > config.DEMO_ROWS:
+        df = df.sample(n=config.DEMO_ROWS, random_state=config.RANDOM_SEED)
+        df = df.reset_index(drop=True)
+        print(f"\n! MODE DÉMO : corpus réduit à {len(df)} lignes "
+              f"(config.DEMO_ROWS). Chiffres non exploitables pour le rapport.")
+        stats["demo_rows"] = config.DEMO_ROWS
+
     stats["rows_kept"] = len(df)
     # Counted on what was actually kept, so the figure matches the corpus the
     # rest of the pipeline sees rather than the pre-sampling one.

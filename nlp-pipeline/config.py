@@ -57,9 +57,24 @@ MIN_DESCRIPTION_CHARS = 25
 
 RANDOM_SEED = 42
 
+# --------------------------------------------------------------------------- demo mode
+#
+# Cap the prepared corpus to this many rows. Set to None for a real run.
+#
+# What it is for: producing screenshots and checking the chain end to end in
+# seconds, on a machine that cannot spend an afternoon on the LLM pass. Every
+# step still runs, every figure is still drawn - on a corpus far too small to
+# mean anything.
+#
+# NOTHING measured under a demo cap belongs in the report. The volumetry the
+# report quotes comes from the diagnostic on the full export, which is read
+# before this cap applies and is therefore unaffected.
+DEMO_ROWS = 20
+
 # A class seen a handful of times cannot be learned and only adds noise to the
-# macro F1. Below this count the class is dropped.
-MIN_SAMPLES_PER_CLASS = 15
+# macro F1. Below this count the class is dropped - but that floor would empty
+# a demo corpus entirely, so it drops with it.
+MIN_SAMPLES_PER_CLASS = 1 if DEMO_ROWS else 15
 
 # --------------------------------------------------------------------------- training sample
 #
