@@ -74,6 +74,37 @@ def main() -> None:
     stats: dict = {"rows_raw": len(df), "columns_raw": df.shape[1]}
     print(f"\nExport: {len(df):,} rows x {df.shape[1]} columns")
 
+    # --- duplicate rows -------------------------------------------------------
+    #
+    # Two kinds of duplication, and only one of them is a defect:
+    #
+    # - Identical rows across every column are the same record exported twice -
+    #   a genuine export artefact, removed here.
+    # - Identical NUMEROREQUETE with different content would mean the export
+    #   assigned one request number to two different records - a data integrity
+    #   problem worth surfacing, not silently dropping.
+    #
+    # What is deliberately NOT treated as a duplicate: two different complaints
+    # that happen to share the same wording (e.g. two customers both writing
+    # "Attestation livrée depuis WEB", or two independently asking about a late
+    # pension). Removing those would delete real, distinct records and quietly
+    # shrink whichever categories are common - exactly the classes a classifier
+    # most needs examples of.
+    exact_duplicates = df.duplicated()
+    print(f"Exact duplicate rows (every column identical): {int(exact_duplicates.sum()):,}")
+    df = df[~exact_duplicates].copy()
+    stats["exact_duplicate_rows_dropped"] = int(exact_duplicates.sum())
+
+    # Any NUMEROREQUETE still duplicated at this point is, by construction, a row
+    # that differs from its sibling somewhere else - the two are describing the
+    # same request number but not the same content. Kept, and reported: this is
+    # an export quality issue worth naming in the report rather than one to hide.
+    conflicting_ids = df["NUMEROREQUETE"].duplicated(keep=False)
+    if conflicting_ids.any():
+        print(f"! {int(conflicting_ids.sum()):,} rows share a NUMEROREQUETE with "
+              f"different content — kept as separate records.")
+    stats["rows_with_conflicting_request_number"] = int(conflicting_ids.sum())
+
     # --- markup -------------------------------------------------------------
     # Descriptions arrive as HTML fragments: <br>, <hr>, and the literal string
     # "null" where the source system had nothing to write.

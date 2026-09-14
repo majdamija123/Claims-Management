@@ -41,6 +41,8 @@ def main() -> None:
         total = step1["rows_raw"]
         rows = [
             ("Export Excel brut", total),
+            ("− doublons exacts (ligne entière identique)",
+             -step1["exact_duplicate_rows_dropped"]),
             ("− pièces jointes corrompues", -step1["office_artefacts_dropped"]),
             ("− actes automatiques (attestations libre-service)",
              -step1["automated_acts_dropped"]),
