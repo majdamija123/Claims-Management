@@ -73,6 +73,23 @@ def main() -> None:
     stats: dict = {"rows_raw": len(df), "columns_raw": df.shape[1]}
     print(f"\nExport: {len(df):,} rows x {df.shape[1]} columns")
 
+    # --- demo cap ------------------------------------------------------------
+    # Applied here, before anything reads the text, because the markup pass
+    # below touches every cell of every text column - tens of millions of calls
+    # on the full export. Capping after it would mean paying that cost in full
+    # to produce twenty rows, which is the opposite of the point.
+    #
+    # The funnel counts printed below are then demo counts, not the export's.
+    # The figures the report quotes come from step 0 on the whole file.
+    if config.DEMO_ROWS and len(df) > config.DEMO_ROWS:
+        # Drawn from the whole file rather than its head, so the sample is not
+        # all one year or one category.
+        df = df.sample(n=config.DEMO_ROWS * 40, random_state=config.RANDOM_SEED)
+        df = df.reset_index(drop=True)
+        print(f"! MODE DÉMO : {len(df):,} lignes tirées au hasard avant nettoyage.")
+        print("  Les chiffres de cette exécution ne valent pas pour le rapport.")
+        stats["demo_rows"] = config.DEMO_ROWS
+
     # --- duplicate rows -------------------------------------------------------
     #
     # Two kinds of duplication, and only one of them is a defect:

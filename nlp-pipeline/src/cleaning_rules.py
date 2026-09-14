@@ -45,10 +45,17 @@ def strip_markup(text) -> str | float:
         return text
 
     text = str(text)
-    text = BeautifulSoup(text, "html.parser").get_text(" ")
-    text = re.sub(r"\$.*?\$", " ", text)          # $VARIABLE$ placeholders
-    text = re.sub(r"[\r\n\t]", " ", text)
-    text = re.sub(r"\s+", " ", text)
+
+    # Parsing is what costs here: this runs on every cell of every text column,
+    # which is tens of millions of calls on the full export, and BeautifulSoup
+    # is milliseconds per call. Most cells carry no markup at all, and the
+    # cheap membership test that skips them turns hours into minutes.
+    if "<" in text:
+        text = BeautifulSoup(text, "html.parser").get_text(" ")
+    if "$" in text:
+        text = re.sub(r"\$.*?\$", " ", text)      # $VARIABLE$ placeholders
+
+    text = re.sub(r"\s+", " ", text)              # also collapses \r \n \t
     return text.strip()
 
 
